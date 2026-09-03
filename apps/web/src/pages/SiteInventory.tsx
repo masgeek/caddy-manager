@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PageHeader } from "@caddy-manager/ui";
+import { Modal, PageHeader } from "@caddy-manager/ui";
 import type { SiteGroup, SiteInventory } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
 
@@ -15,6 +15,11 @@ export default function SiteInventory() {
   } | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupServerId, setNewGroupServerId] = useState("");
+  const [operation, setOperation] = useState<{
+    title: string;
+    message: string;
+    status: "running" | "success" | "error";
+  } | null>(null);
   const inventoryView =
     searchParams.get("view") === "caddyfile" ? "caddyfile" : "dynamic";
   const ensureMutation = useMutation({
@@ -111,6 +116,30 @@ export default function SiteInventory() {
       }),
   });
 
+  const runEnsure = () => {
+    setOperation({
+      title: "Ensuring Caddy setup",
+      message:
+        "Checking every configured Caddy server block and creating missing dynamic route containers.",
+      status: "running",
+    });
+    ensureMutation.mutate(undefined, {
+      onSuccess: (result) =>
+        setOperation({
+          title: "Caddy setup complete",
+          message: `Checked ${result.serverBlocks} Caddy server block${result.serverBlocks === 1 ? "" : "s"}.`,
+          status: "success",
+        }),
+      onError: (error) =>
+        setOperation({
+          title: "Caddy setup failed",
+          message:
+            error instanceof Error ? error.message : "Caddy setup failed",
+          status: "error",
+        }),
+    });
+  };
+
   const rows = (query.data ?? []).filter(
     (row) =>
       row.managementType ===
@@ -141,7 +170,7 @@ export default function SiteInventory() {
           <div className="d-flex gap-2 align-items-center">
             <button
               className="btn btn-outline-success"
-              onClick={() => ensureMutation.mutate()}
+              onClick={runEnsure}
               disabled={ensureMutation.isPending}
               title="Create dynamic-sites and dynamic-site-router when missing"
             >
@@ -273,12 +302,72 @@ export default function SiteInventory() {
         <InventoryTable
           rows={rows}
           groups={groupsQuery.data ?? []}
-          onAction={(id, action) => updateMutation.mutate({ id, action })}
+          onAction={(id, action) => {
+            setOperation({
+              title:
+                action === "provision"
+                  ? "Provisioning site"
+                  : "Updating site inventory",
+              message: "Applying the requested inventory change. Please wait.",
+              status: "running",
+            });
+            updateMutation.mutate(
+              { id, action },
+              {
+                onSuccess: () =>
+                  setOperation({
+                    title: "Inventory update complete",
+                    message:
+                      "The requested inventory action completed successfully.",
+                    status: "success",
+                  }),
+                onError: (error) =>
+                  setOperation({
+                    title: "Inventory update failed",
+                    message:
+                      error instanceof Error
+                        ? error.message
+                        : "Inventory action failed",
+                    status: "error",
+                  }),
+              },
+            );
+          }}
           onGroupChange={(id, groupId) =>
             assignGroupMutation.mutate({ id, groupId })
           }
         />
       )}
+      <Modal
+        open={!!operation}
+        title={operation?.title ?? "Inventory operation"}
+        onClose={() => {
+          if (operation?.status !== "running") setOperation(null);
+        }}
+        footer={
+          operation?.status !== "running" ? (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setOperation(null)}
+            >
+              Close
+            </button>
+          ) : undefined
+        }
+      >
+        <div
+          className={`alert alert-${operation?.status === "success" ? "success" : operation?.status === "error" ? "danger" : "info"} mb-0`}
+          role="status"
+        >
+          {operation?.status === "running" && (
+            <span
+              className="spinner-border spinner-border-sm me-2"
+              aria-hidden="true"
+            />
+          )}
+          {operation?.message}
+        </div>
+      </Modal>
     </div>
   );
 }
