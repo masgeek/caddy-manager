@@ -230,45 +230,33 @@ export async function provisionInventory(id: string): Promise<SiteInventory> {
           item.serverId === current.serverId &&
           item.managementType === "dynamic" &&
           (item.caddyServerName ?? serverName) === serverName &&
-          shouldProvisionInventory(item.state),
+          (item.state === "provisioned" || item.id === id),
       );
-      for (const item of group) {
-        const observed = await siteRepo.findByDomainAndServer(
-          item.domain,
-          item.serverId!,
-        );
-        if (observed && observed.routeId !== item.routeId)
-          throw new ConflictError(
-            `Observed site '${item.domain}' has a different route_id`,
-          );
-      }
       await syncDynamicRoutes(provider, serverName, allDynamic.map(routeSite));
-      const desired = buildDynamicRoutes(group.map(routeSite));
+      const desired = buildDynamicRoutes([routeSite(current)]);
       if (!desired.some((route) => route["@id"] === current.routeId))
         throw new Error(`Desired route '${current.routeId}' was not built`);
 
-      for (const item of group) {
-        let observed = await siteRepo.findByDomainAndServer(
-          item.domain,
-          item.serverId!,
+      let observed = await siteRepo.findByDomainAndServer(
+        current.domain,
+        current.serverId!,
+      );
+      if (observed && observed.routeId !== current.routeId)
+        throw new ConflictError(
+          `Observed site '${current.domain}' has a different route_id`,
         );
-        if (observed && observed.routeId !== item.routeId)
-          throw new ConflictError(
-            `Observed site '${item.domain}' has a different route_id`,
-          );
-        if (!observed) {
-          observed = await siteRepo.create({
-            serverId: item.serverId!,
-            domain: item.domain,
-            routeId: item.routeId,
-            caddyServerName: serverName,
-            upstream: item.upstream,
-            routeConfig: item.routeConfig,
-            tlsEnabled: item.tlsEnabled,
-          });
-        }
-        await siteInventoryRepo.markProvisioned(item.id, observed.id);
+      if (!observed) {
+        observed = await siteRepo.create({
+          serverId: current.serverId!,
+          domain: current.domain,
+          routeId: current.routeId,
+          caddyServerName: serverName,
+          upstream: current.upstream,
+          routeConfig: current.routeConfig,
+          tlsEnabled: current.tlsEnabled,
+        });
       }
+      await siteInventoryRepo.markProvisioned(id, observed.id);
       return await getInventory(id);
     } catch (error) {
       await siteInventoryRepo.markFailed(
@@ -299,7 +287,7 @@ export async function disableInventory(id: string): Promise<SiteInventory> {
             candidate.serverId === item.serverId &&
             candidate.managementType === "dynamic" &&
             (candidate.caddyServerName ?? serverName) === serverName &&
-            shouldProvisionInventory(candidate.state),
+            candidate.state === "provisioned",
         );
         await syncDynamicRoutes(provider, serverName, remaining.map(routeSite));
         const observed = await siteRepo.findByDomainAndServer(

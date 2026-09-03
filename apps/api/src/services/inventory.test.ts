@@ -134,8 +134,14 @@ describe("site inventory", () => {
       tlsEnabled: true,
     } as const;
     const observed = { id: "site-id" };
+    const otherGroupItem = {
+      ...item,
+      id: "other-inventory-id",
+      domain: "other.example.com",
+      state: "ready",
+    };
     mocks.inventoryFindById.mockResolvedValue(item);
-    mocks.inventoryFindAll.mockResolvedValue([item]);
+    mocks.inventoryFindAll.mockResolvedValue([item, otherGroupItem]);
     mocks.serverFindById.mockResolvedValue({
       id: "server-id",
       apiEndpoint: "https://caddy.test",
@@ -158,7 +164,11 @@ describe("site inventory", () => {
       state: "ready",
     });
     expect(mocks.syncDynamicRoutes).toHaveBeenCalled();
+    expect(mocks.syncDynamicRoutes.mock.calls.at(-1)?.[2]).toEqual([
+      expect.objectContaining({ domain: item.domain }),
+    ]);
     expect(mocks.siteCreate).toHaveBeenCalled();
+    expect(mocks.siteCreate).toHaveBeenCalledTimes(1);
     expect(mocks.inventoryMarkProvisioned).toHaveBeenCalledWith(
       item.id,
       observed.id,
