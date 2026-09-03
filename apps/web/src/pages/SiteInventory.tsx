@@ -9,7 +9,10 @@ export default function SiteInventory() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    message: string;
+    kind: "success" | "danger" | "warning" | "info";
+  } | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupServerId, setNewGroupServerId] = useState("");
   const inventoryView =
@@ -17,15 +20,18 @@ export default function SiteInventory() {
   const ensureMutation = useMutation({
     mutationFn: () => api.ensureDynamicInfrastructure(),
     onSuccess: (result) =>
-      setFeedback(
-        `Dynamic infrastructure is ready for ${result.serverBlocks} Caddy server block${result.serverBlocks === 1 ? "" : "s"}.`,
-      ),
+      setFeedback({
+        message: `Dynamic infrastructure is ready for ${result.serverBlocks} Caddy server block${result.serverBlocks === 1 ? "" : "s"}.`,
+        kind: "success",
+      }),
     onError: (error) =>
-      setFeedback(
-        error instanceof Error
-          ? error.message
-          : "Failed to ensure dynamic infrastructure",
-      ),
+      setFeedback({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to ensure dynamic infrastructure",
+        kind: "danger",
+      }),
   });
   const query = useQuery({
     queryKey: ["site-inventory"],
@@ -49,9 +55,11 @@ export default function SiteInventory() {
       queryClient.invalidateQueries({ queryKey: ["site-groups"] });
     },
     onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to create group",
-      ),
+      setFeedback({
+        message:
+          error instanceof Error ? error.message : "Failed to create group",
+        kind: "danger",
+      }),
   });
   const assignGroupMutation = useMutation({
     mutationFn: ({ id, groupId }: { id: string; groupId: string | null }) =>
@@ -59,9 +67,11 @@ export default function SiteInventory() {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["site-inventory"] }),
     onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to assign group",
-      ),
+      setFeedback({
+        message:
+          error instanceof Error ? error.message : "Failed to assign group",
+        kind: "danger",
+      }),
   });
   const deleteGroupMutation = useMutation({
     mutationFn: (id: string) => api.deleteSiteGroup(id),
@@ -70,9 +80,11 @@ export default function SiteInventory() {
       queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
     },
     onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to delete group",
-      ),
+      setFeedback({
+        message:
+          error instanceof Error ? error.message : "Failed to delete group",
+        kind: "danger",
+      }),
   });
 
   const updateMutation = useMutation({
@@ -92,9 +104,11 @@ export default function SiteInventory() {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
     },
     onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Inventory action failed",
-      ),
+      setFeedback({
+        message:
+          error instanceof Error ? error.message : "Inventory action failed",
+        kind: "danger",
+      }),
   });
 
   const rows = (query.data ?? []).filter(
@@ -238,8 +252,8 @@ export default function SiteInventory() {
       </section>
 
       {feedback && (
-        <div className="alert alert-danger" role="alert">
-          {feedback}
+        <div className={`alert alert-${feedback.kind}`} role="alert">
+          {feedback.message}
         </div>
       )}
       {query.isLoading && (
