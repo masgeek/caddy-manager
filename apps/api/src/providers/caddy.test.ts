@@ -119,6 +119,23 @@ describe("CaddyProvider", () => {
     );
   });
 
+  it("loads TLS automation subjects for nested dynamic host routes", async () => {
+    fetchMock
+      .mockResolvedValueOnce(response({ apps: { http: { servers: {} } } }))
+      .mockResolvedValueOnce(response(undefined));
+    const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
+
+    await provider.ensureTlsAutomation(["koiwa.munywele.co.ke"]);
+
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "https://caddy.test/load",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining('"subjects":["koiwa.munywele.co.ke"]'),
+      }),
+    );
+  });
+
   it("creates the dynamic container once when it is missing", async () => {
     let containerLookups = 0;
     fetchMock.mockImplementation((url: string, options?: RequestInit) => {

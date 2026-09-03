@@ -83,6 +83,34 @@ export class CaddyProvider {
     });
   }
 
+  async ensureTlsAutomation(domains: string[]): Promise<void> {
+    if (domains.length === 0) return;
+    const current = await this.getConfig();
+    const apps = (current.apps as Record<string, unknown> | undefined) ?? {};
+    const tls = (apps.tls as Record<string, unknown> | undefined) ?? {};
+    const automation =
+      (tls.automation as Record<string, unknown> | undefined) ?? {};
+    const policies = Array.isArray(automation.policies)
+      ? (automation.policies as Array<Record<string, unknown>>)
+      : [];
+    const existing = policies[0] ?? {};
+    const existingSubjects = Array.isArray(existing.subjects)
+      ? (existing.subjects as unknown[]).filter(
+          (subject): subject is string => typeof subject === "string",
+        )
+      : [];
+    const subjects = [...new Set([...existingSubjects, ...domains])].sort();
+    const nextApps = structuredClone(apps);
+    nextApps.tls = {
+      ...tls,
+      automation: {
+        ...automation,
+        policies: [{ ...existing, subjects }, ...policies.slice(1)],
+      },
+    };
+    await this.reloadConfig({ ...current, apps: nextApps });
+  }
+
   async health(): Promise<void> {
     await this.request("/config/");
   }

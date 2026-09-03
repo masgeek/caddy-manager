@@ -230,8 +230,12 @@ export function buildCaddyConfig(
   const tlsSites = dynamicSites.filter((s) => s.tlsEnabled);
   if (tlsSites.length > 0) {
     apps.tls = {
-      certificates: {
-        auto: tlsSites.map((s) => s.domain),
+      automation: {
+        policies: [
+          {
+            subjects: tlsSites.map((s) => s.domain).sort(),
+          },
+        ],
       },
     };
   }
@@ -557,6 +561,9 @@ export async function syncDynamicRoutes(
       desired.map((route) => route["@id"] as string),
     );
     await provider.replaceDynamicRoutes(desired);
+    await provider.ensureTlsAutomation(
+      dynamicSites.filter((site) => site.tlsEnabled).map((site) => site.domain),
+    );
     const actual = await provider.getDynamicRoutes();
     if (
       actual.length !== desired.length ||
