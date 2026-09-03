@@ -90,8 +90,10 @@ export function errorHandler(
   }
 
   const statusCode = (error as FastifyError).statusCode || 500;
+  const validation = (error as FastifyError).validation;
   return fastifyReply.status(statusCode).send({
     statusCode,
-    message: statusCode === 500 ? "Internal Server Error" : error.message,
+    message: error.message || "Unknown API error",
+    ...(validation ? { details: validation } : {}),
   });
 }
