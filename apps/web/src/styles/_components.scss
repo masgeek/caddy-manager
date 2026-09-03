@@ -1064,6 +1064,22 @@
   font-size: 0.9rem;
   line-height: 1.35;
 }
+.operation-progress {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+  border-radius: 99px;
+  background: rgba($text-blue, 0.16);
+}
+.operation-progress span {
+  position: absolute;
+  inset: 0 auto 0 -35%;
+  width: 35%;
+  background: currentColor;
+  animation: operation-progress 1.35s ease-in-out infinite;
+}
 .operation-icon-spin {
   animation: operation-spin 1.2s linear infinite;
 }
@@ -1073,9 +1089,18 @@
     transform: rotate(360deg);
   }
 }
+@keyframes operation-progress {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(385%);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .operation-icon-spin {
+  .operation-icon-spin,
+  .operation-progress span {
     animation: none;
   }
 }

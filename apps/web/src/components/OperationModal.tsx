@@ -79,6 +79,11 @@ export default function OperationModal({
                 : "Needs attention"}
           </strong>
           <span>{operation?.message}</span>
+          {isRunning && (
+            <div className="operation-progress" aria-hidden="true">
+              <span />
+            </div>
+          )}
         </div>
       </div>
     </Modal>
