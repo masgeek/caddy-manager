@@ -336,7 +336,7 @@ export async function reconcileAllSites(
         if (options.dryRun) {
           let actual: Array<Record<string, unknown>> = [];
           try {
-            actual = await provider.getDynamicRoutes();
+            actual = await provider.getServerRoutes(serverName);
           } catch (error) {
             if (!(
               error instanceof Error &&
@@ -363,12 +363,12 @@ export async function reconcileAllSites(
         } else {
           const candidate = eligible.find((item) => item.routeId);
           if (candidate) await provisionInventory(candidate.id);
-          else await provider.ensureDynamicRouteContainer(serverName);
+          else await provider.getServerRoutes(serverName);
         }
       }
       if (!options.dryRun && byServer.size === 0) {
         for (const serverName of serverNames)
-          await provider.ensureDynamicRouteContainer(serverName);
+          await provider.getServerRoutes(serverName);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -140,19 +140,8 @@ describe("site config preservation", () => {
     expect(config.apps as Record<string, unknown>).toMatchObject({
       http: {
         servers: {
-          proxy: {
-            routes: [
-              {
-                "@id": "dynamic-sites",
-                handle: [
-                  {
-                    "@id": "dynamic-site-router",
-                    handler: "subroute",
-                    routes: [routeConfig],
-                  },
-                ],
-              },
-            ],
+          srv0: {
+            routes: [routeConfig],
           },
         },
       },

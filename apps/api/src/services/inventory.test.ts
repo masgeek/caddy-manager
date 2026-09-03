@@ -75,22 +75,22 @@ describe("site inventory", () => {
     );
   });
 
-  it("ensures dynamic containers for every configured Caddy server block", async () => {
-    const ensureDynamicRouteContainer = vi.fn();
+  it("checks every configured Caddy server block", async () => {
+    const getServerRoutes = vi.fn().mockResolvedValue([]);
     mocks.serverFindAll.mockResolvedValueOnce([
       { id: "server-id", apiEndpoint: "http://caddy:2019" },
     ]);
     mocks.caddyConstructor.mockImplementationOnce(() => ({
       getServerNames: vi.fn().mockResolvedValue(["srv0", "srv1"]),
-      ensureDynamicRouteContainer,
+      getServerRoutes,
     }));
 
     await expect(ensureDynamicInfrastructure()).resolves.toEqual({
       servers: 1,
       serverBlocks: 2,
     });
-    expect(ensureDynamicRouteContainer).toHaveBeenCalledWith("srv0");
-    expect(ensureDynamicRouteContainer).toHaveBeenCalledWith("srv1");
+    expect(getServerRoutes).toHaveBeenCalledWith("srv0");
+    expect(getServerRoutes).toHaveBeenCalledWith("srv1");
   });
 
   it("reports which server failed while ensuring dynamic infrastructure", async () => {

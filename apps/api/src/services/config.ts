@@ -1,6 +1,6 @@
 import type { Server, Site } from "@caddy-manager/shared-types";
 import { siteRepo, serverRepo, backfillSiteInventory } from "@caddy-manager/db";
-import { CaddyProvider, DYNAMIC_SITE_ROUTER_ID } from "../providers/caddy";
+import { CaddyProvider } from "../providers/caddy";
 
 export interface ParsedSite {
   domain: string;
@@ -208,20 +208,9 @@ export function buildCaddyConfig(
   const apps: Record<string, unknown> = {
     http: {
       servers: {
-        proxy: {
+        srv0: {
           listen: [":80", ":443"],
-          routes: [
-            {
-              "@id": "dynamic-sites",
-              handle: [
-                {
-                  "@id": DYNAMIC_SITE_ROUTER_ID,
-                  handler: "subroute",
-                  routes: serverRoutes,
-                },
-              ],
-            },
-          ],
+          routes: serverRoutes,
         },
       },
     },
@@ -554,17 +543,18 @@ export async function syncDynamicRoutes(
     const dynamicSites = sites.filter(
       (site) => site.routeId !== undefined && site.routeId !== null,
     );
-    await provider.ensureDynamicRouteContainer(caddyServerName);
     const desired = buildDynamicRoutes(dynamicSites);
     const legacy = await provider.findLegacyRoutes(
       caddyServerName,
       desired.map((route) => route["@id"] as string),
     );
-    await provider.replaceDynamicRoutes(desired);
+    await provider.replaceDynamicRoutes(caddyServerName, desired);
     await provider.ensureTlsAutomation(
       dynamicSites.filter((site) => site.tlsEnabled).map((site) => site.domain),
     );
-    const actual = await provider.getDynamicRoutes();
+    const actual = (await provider.getServerRoutes(caddyServerName)).filter(
+      (route) => desired.some((candidate) => candidate["@id"] === route["@id"]),
+    );
     if (
       actual.length !== desired.length ||
       actual.some(

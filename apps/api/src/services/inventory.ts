@@ -65,7 +65,7 @@ export async function ensureDynamicInfrastructure(): Promise<{
     }
     for (const serverName of serverNames) {
       try {
-        await provider.ensureDynamicRouteContainer(serverName);
+        await provider.getServerRoutes(serverName);
       } catch (error) {
         throw caddySetupError(
           server,

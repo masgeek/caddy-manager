@@ -6,9 +6,6 @@ export interface ProviderConfig {
   timeout?: number;
 }
 
-export const DYNAMIC_SITES_ID = "dynamic-sites";
-export const DYNAMIC_SITE_ROUTER_ID = "dynamic-site-router";
-
 const dynamicLocks = new Map<string, Promise<void>>();
 
 export class CaddyProvider {
@@ -162,47 +159,6 @@ export class CaddyProvider {
     return routes as Array<Record<string, unknown>>;
   }
 
-  async ensureDynamicRouteContainer(serverName: string): Promise<void> {
-    let container: Record<string, unknown> | undefined;
-    try {
-      container = await this.getRouteByID(DYNAMIC_SITES_ID);
-    } catch (error) {
-      if (!(
-        error instanceof Error &&
-        error.message.startsWith("Caddy API error: 404")
-      ))
-        throw error;
-    }
-
-    if (!container) {
-      await this.addRoute(serverName, {
-        "@id": DYNAMIC_SITES_ID,
-        handle: [
-          { "@id": DYNAMIC_SITE_ROUTER_ID, handler: "subroute", routes: [] },
-        ],
-      });
-    } else {
-      try {
-        await this.getRouteByID(DYNAMIC_SITE_ROUTER_ID);
-      } catch (error) {
-        if (!(
-          error instanceof Error &&
-          error.message.startsWith("Caddy API error: 404")
-        ))
-          throw error;
-        const handles =
-          (container.handle as Array<Record<string, unknown>> | undefined) ??
-          [];
-        await this.updateRouteByID(DYNAMIC_SITES_ID, {
-          handle: [
-            ...handles,
-            { "@id": DYNAMIC_SITE_ROUTER_ID, handler: "subroute", routes: [] },
-          ],
-        });
-      }
-    }
-  }
-
   async findLegacyRoutes(
     serverName: string,
     routeIds: string[],
@@ -215,25 +171,25 @@ export class CaddyProvider {
     );
   }
 
-  async getDynamicRoutes(): Promise<Array<Record<string, unknown>>> {
-    const dynamic = await this.getRouteByID<{ routes?: unknown }>(
-      DYNAMIC_SITE_ROUTER_ID,
-    );
-    if (!Array.isArray(dynamic.routes))
-      throw new Error("Malformed dynamic-site-router response from Caddy");
-    return dynamic.routes as Array<Record<string, unknown>>;
-  }
-
   async replaceDynamicRoutes(
+    serverName: string,
     routes: Array<Record<string, unknown>>,
   ): Promise<void> {
+    const current = await this.getServerRoutes(serverName);
+    const routeIds = new Set(
+      routes
+        .map((route) => route["@id"])
+        .filter((id): id is string => typeof id === "string"),
+    );
+    const next = current
+      .filter((route) => route["@id"] !== "dynamic-sites")
+      .filter((route) => !routeIds.has(route["@id"] as string))
+      .concat(routes);
     await this.request(
-      `/id/${encodeURIComponent(DYNAMIC_SITE_ROUTER_ID)}/routes`,
+      `/config/apps/http/servers/${encodeURIComponent(serverName)}/routes`,
       {
-        // PATCH replaces the existing array value; PUT tries to add a second
-        // `routes` key when the dynamic subroute has already been created.
         method: "PATCH",
-        body: JSON.stringify(routes),
+        body: JSON.stringify(next),
       },
     );
   }

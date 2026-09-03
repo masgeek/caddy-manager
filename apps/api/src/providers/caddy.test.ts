@@ -101,20 +101,30 @@ describe("CaddyProvider", () => {
     );
   });
 
-  it("patches routes through the dynamic subroute ID", async () => {
-    fetchMock.mockResolvedValue(response(undefined));
+  it("replaces dynamic routes directly in the server route list", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        response([
+          { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
+          { "@id": "dynamic-sites", handle: [{ routes: [] }] },
+        ]),
+      )
+      .mockResolvedValueOnce(response(undefined));
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
     const routes = [
       { "@id": "service-a", match: [{ host: ["a.example.com"] }] },
     ];
 
-    await provider.replaceDynamicRoutes(routes);
+    await provider.replaceDynamicRoutes("srv0", routes);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://caddy.test/id/dynamic-site-router/routes",
+      "https://caddy.test/config/apps/http/servers/srv0/routes",
       expect.objectContaining({
         method: "PATCH",
-        body: JSON.stringify(routes),
+        body: JSON.stringify([
+          { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
+          routes[0],
+        ]),
       }),
     );
   });
@@ -134,50 +144,6 @@ describe("CaddyProvider", () => {
         body: expect.stringContaining('"subjects":["koiwa.munywele.co.ke"]'),
       }),
     );
-  });
-
-  it("creates the dynamic container once when it is missing", async () => {
-    let containerLookups = 0;
-    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
-      if (url.endsWith("/id/dynamic-sites")) {
-        containerLookups++;
-        return Promise.resolve(
-          containerLookups === 1
-            ? response("missing", {
-                ok: false,
-                status: 404,
-                statusText: "Not Found",
-              })
-            : response({
-                handle: [
-                  {
-                    "@id": "dynamic-site-router",
-                    handler: "subroute",
-                    routes: [],
-                  },
-                ],
-              }),
-        );
-      }
-      if (url.endsWith("/id/dynamic-site-router"))
-        return Promise.resolve(response({ routes: [] }));
-      if (url.endsWith("/routes") && options?.method === "POST")
-        return Promise.resolve(response(undefined));
-      return Promise.resolve(response([]));
-    });
-    const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
-
-    await provider.ensureDynamicRouteContainer("internal");
-    await provider.ensureDynamicRouteContainer("internal");
-
-    expect(
-      fetchMock.mock.calls.filter(
-        ([url, options]) =>
-          url ===
-            "https://caddy.test/config/apps/http/servers/internal/routes" &&
-          options?.method === "POST",
-      ),
-    ).toHaveLength(1);
   });
 
   it("selects legacy routes only by application-owned IDs", async () => {
