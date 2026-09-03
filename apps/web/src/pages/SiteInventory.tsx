@@ -288,10 +288,9 @@ function InventoryTable({
     );
   }
 
-  const groupsById = new Map(groups.map((group) => [group.id, group]));
   const groupedRows = new Map<string, SiteInventory[]>();
   for (const row of rows) {
-    const key = row.groupId ?? "ungrouped";
+    const key = row.routeId ?? "ungrouped";
     groupedRows.set(key, [...(groupedRows.get(key) ?? []), row]);
   }
 
@@ -312,13 +311,8 @@ function InventoryTable({
           {[...groupedRows.entries()].map(([groupId, groupRows]) => (
             <Fragment key={groupId}>
               <tr className="table-light" key={`${groupId}-header`}>
-                <th colSpan={5}>
-                  {groupId === "ungrouped"
-                    ? "Ungrouped sites"
-                    : (groupsById.get(groupId)?.name ?? groupId)}
-                  {groupId !== "ungrouped" && (
-                    <code className="ms-2">{groupId}</code>
-                  )}
+                <th colSpan={6}>
+                  {groupId === "ungrouped" ? "Ungrouped sites" : groupId}
                   <span className="text-muted ms-2">({groupRows.length})</span>
                 </th>
               </tr>

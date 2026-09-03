@@ -1,7 +1,7 @@
 CREATE TABLE "site_groups" (
 	"id" text PRIMARY KEY NOT NULL,
 	"server_id" text NOT NULL,
-	"name" varchar(100) NOT NULL,
+	"name" varchar(255) NOT NULL,
 	"description" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL

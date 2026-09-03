@@ -68,7 +68,7 @@ export const siteGroups = pgTable(
     serverId: text("server_id")
       .notNull()
       .references(() => servers.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 100 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

@@ -6,7 +6,7 @@ import { siteGroups } from "../schema";
 
 export const createSiteGroupSchema = z.object({
   serverId: z.string().uuid(),
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(255),
   description: z.string().max(1000).optional(),
 });
 
