@@ -101,7 +101,7 @@ describe("CaddyProvider", () => {
     );
   });
 
-  it("replaces routes through the dynamic subroute ID", async () => {
+  it("patches routes through the dynamic subroute ID", async () => {
     fetchMock.mockResolvedValue(response(undefined));
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
     const routes = [
@@ -112,7 +112,10 @@ describe("CaddyProvider", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://caddy.test/id/dynamic-site-router/routes",
-      expect.objectContaining({ method: "PUT", body: JSON.stringify(routes) }),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify(routes),
+      }),
     );
   });
 

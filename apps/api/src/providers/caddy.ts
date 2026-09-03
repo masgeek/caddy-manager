@@ -202,7 +202,9 @@ export class CaddyProvider {
     await this.request(
       `/id/${encodeURIComponent(DYNAMIC_SITE_ROUTER_ID)}/routes`,
       {
-        method: "PUT",
+        // PATCH replaces the existing array value; PUT tries to add a second
+        // `routes` key when the dynamic subroute has already been created.
+        method: "PATCH",
         body: JSON.stringify(routes),
       },
     );
