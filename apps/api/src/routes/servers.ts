@@ -254,7 +254,6 @@ export async function registerServerRoutes(app: FastifyInstance) {
               },
               required: [
                 "domain",
-                "upstream",
                 "caddyServerName",
                 "tlsEnabled",
                 "alreadyImported",

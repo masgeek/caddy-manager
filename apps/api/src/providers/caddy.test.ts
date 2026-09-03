@@ -106,13 +106,16 @@ describe("CaddyProvider", () => {
       .mockResolvedValueOnce(
         response([
           { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
-          { "@id": "dynamic-sites", handle: [{ routes: [] }] },
+          {
+            "@id": "service-a",
+            match: [{ host: ["first.example.com", "second.example.com"] }],
+          },
         ]),
       )
       .mockResolvedValueOnce(response(undefined));
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
     const routes = [
-      { "@id": "service-a", match: [{ host: ["a.example.com"] }] },
+      { "@id": "service-a", match: [{ host: ["first.example.com"] }] },
     ];
 
     await provider.replaceDynamicRoutes("srv0", routes);
