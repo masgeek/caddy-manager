@@ -182,9 +182,13 @@ export async function provisionInventory(id: string): Promise<SiteInventory> {
   if (!requested.routeId)
     throw new ConflictError("A dynamic inventory site requires route_id");
   if (
-    !["ready", "failed", "provisioning", "provisioned"].includes(
-      requested.state,
-    )
+    ![
+      "ready",
+      "failed",
+      "provisioning",
+      "provisioned",
+      "not_provisioned",
+    ].includes(requested.state)
   ) {
     throw new ConflictError(
       `Inventory site is '${requested.state}', not eligible for provisioning`,

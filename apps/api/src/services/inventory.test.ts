@@ -120,6 +120,7 @@ describe("site inventory", () => {
     expect(shouldProvisionInventory("disabled")).toBe(false);
     expect(shouldProvisionInventory("ready")).toBe(true);
     expect(shouldProvisionInventory("provisioned")).toBe(true);
+    expect(shouldProvisionInventory("not_provisioned")).toBe(true);
   });
 
   it("provisions inventory and creates the observed site only after Caddy sync", async () => {
