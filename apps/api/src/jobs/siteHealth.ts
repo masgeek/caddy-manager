@@ -399,6 +399,11 @@ function tryParseHeaders(raw: string): Record<string, string> | undefined {
 export function startSiteHealthJob(): void {
   if (task) return;
 
+  if (!config.siteHealthEnabled) {
+    console.log("[site-health] background job disabled by SITE_HEALTH_ENABLED");
+    return;
+  }
+
   const expression = config.siteCheckCron;
   console.log(
     `[site-health] starting scheduled job (${describeCron(expression)})`,

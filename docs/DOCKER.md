@@ -25,6 +25,7 @@ DB_PASSWORD=replace-me
 JWT_SECRET=replace-with-a-long-random-secret
 SEED_PASSWORD=replace-me
 CADDY_ALLOWED_HOSTS=caddy,host.docker.internal
+SITE_HEALTH_ENABLED=true
 ```
 
 Add the Caddy hostname to the same Docker network as the stack when Caddy is
@@ -43,6 +44,10 @@ after migrations complete, and the web service starts after the API healthcheck
 passes.
 
 Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
+
+Set `SITE_HEALTH_ENABLED=false` to disable the API background cron job for site
+health checks, inventory housekeeping, and missing-route reconciliation. Manual
+API actions and commands such as `pnpm caddy:reconcile` remain available.
 
 ## Operations
 

@@ -61,6 +61,7 @@ services:
     environment:
       PORT: 3500
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      SITE_HEALTH_ENABLED: ${SITE_HEALTH_ENABLED:-true}
       SITE_CHECK_CRON: ${SITE_CHECK_CRON:-*/5 * * * *}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CADDY_ADMIN_TOKEN: ${CADDY_ADMIN_TOKEN:-}
