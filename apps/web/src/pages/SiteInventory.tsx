@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@caddy-manager/ui";
@@ -288,6 +288,13 @@ function InventoryTable({
     );
   }
 
+  const groupsById = new Map(groups.map((group) => [group.id, group]));
+  const groupedRows = new Map<string, SiteInventory[]>();
+  for (const row of rows) {
+    const key = row.groupId ?? "ungrouped";
+    groupedRows.set(key, [...(groupedRows.get(key) ?? []), row]);
+  }
+
   return (
     <div className="card p-3 table-responsive">
       <table className="table align-middle mb-0">
@@ -302,72 +309,92 @@ function InventoryTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td>{row.domain}</td>
-              <td>
-                <code>{row.routeId ?? "Caddyfile"}</code>
-              </td>
-              <td>{row.managementType}</td>
-              <td>
-                <select
-                  className="form-select form-select-sm"
-                  value={row.groupId ?? ""}
-                  disabled={!row.serverId || row.managementType === "caddyfile"}
-                  onChange={(event) =>
-                    onGroupChange(row.id, event.target.value || null)
-                  }
-                >
-                  <option value="">No group</option>
-                  {groups
-                    .filter((group) => group.serverId === row.serverId)
-                    .map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                </select>
-              </td>
-              <td>
-                {row.state}
-                {row.stateDetail && (
-                  <div className="small text-danger">{row.stateDetail}</div>
-                )}
-              </td>
-              <td className="d-flex gap-1">
-                {row.managementType === "dynamic" && row.state === "draft" && (
-                  <button
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => onAction(row.id, "ready")}
-                  >
-                    Mark ready
-                  </button>
-                )}
-                {row.managementType === "dynamic" &&
-                  ["ready", "failed", "not_provisioned"].includes(
-                    row.state,
-                  ) && (
-                    <button
-                      className="btn btn-sm btn-outline-success"
-                      onClick={() => onAction(row.id, "provision")}
-                    >
-                      Provision
-                    </button>
+          {[...groupedRows.entries()].map(([groupId, groupRows]) => (
+            <Fragment key={groupId}>
+              <tr className="table-light" key={`${groupId}-header`}>
+                <th colSpan={5}>
+                  {groupId === "ungrouped"
+                    ? "Ungrouped sites"
+                    : (groupsById.get(groupId)?.name ?? groupId)}
+                  {groupId !== "ungrouped" && (
+                    <code className="ms-2">{groupId}</code>
                   )}
-                {row.managementType === "dynamic" &&
-                  row.state !== "disabled" && (
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => onAction(row.id, "disable")}
+                  <span className="text-muted ms-2">({groupRows.length})</span>
+                </th>
+              </tr>
+              {groupRows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.domain}</td>
+                  <td>
+                    <code>{row.routeId ?? "Caddyfile"}</code>
+                  </td>
+                  <td>{row.managementType}</td>
+                  <td>
+                    <select
+                      className="form-select form-select-sm"
+                      value={row.groupId ?? ""}
+                      disabled={
+                        !row.serverId || row.managementType === "caddyfile"
+                      }
+                      onChange={(event) =>
+                        onGroupChange(row.id, event.target.value || null)
+                      }
                     >
-                      Disable
-                    </button>
-                  )}
-                {row.managementType === "caddyfile" && (
-                  <span className="small text-muted">Managed in Caddyfile</span>
-                )}
-              </td>
-            </tr>
+                      <option value="">No group</option>
+                      {groups
+                        .filter((group) => group.serverId === row.serverId)
+                        .map((group) => (
+                          <option key={group.id} value={group.id}>
+                            {group.name}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                  <td>
+                    {row.state}
+                    {row.stateDetail && (
+                      <div className="small text-danger">{row.stateDetail}</div>
+                    )}
+                  </td>
+                  <td className="d-flex gap-1">
+                    {row.managementType === "dynamic" &&
+                      row.state === "draft" && (
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => onAction(row.id, "ready")}
+                        >
+                          Mark ready
+                        </button>
+                      )}
+                    {row.managementType === "dynamic" &&
+                      ["ready", "failed", "not_provisioned"].includes(
+                        row.state,
+                      ) && (
+                        <button
+                          className="btn btn-sm btn-outline-success"
+                          onClick={() => onAction(row.id, "provision")}
+                        >
+                          Provision
+                        </button>
+                      )}
+                    {row.managementType === "dynamic" &&
+                      row.state !== "disabled" && (
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => onAction(row.id, "disable")}
+                        >
+                          Disable
+                        </button>
+                      )}
+                    {row.managementType === "caddyfile" && (
+                      <span className="small text-muted">
+                        Managed in Caddyfile
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </Fragment>
           ))}
         </tbody>
       </table>
