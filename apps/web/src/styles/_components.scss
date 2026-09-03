@@ -984,6 +984,102 @@
   opacity: 0.92;
 }
 
+.operation-modal .modal-dialog {
+  max-width: 430px;
+}
+
+.operation-modal .modal-content {
+  overflow: hidden;
+  border: 1px solid rgba($mint, 0.45);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 20px 60px rgba($night, 0.32);
+}
+
+.operation-modal .modal-header {
+  padding: 14px 18px 10px;
+  border-bottom: 0;
+}
+
+.operation-modal .modal-title {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.operation-modal .modal-body {
+  padding: 4px 18px 16px;
+}
+
+.operation-modal .modal-footer {
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.operation-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.operation-status-success {
+  color: $mint-dark;
+}
+.operation-status-danger {
+  color: $coral;
+}
+.operation-status-info {
+  color: $text-blue;
+}
+
+.operation-status-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: currentColor;
+  color: var(--paper);
+  font-size: 1rem;
+}
+
+.operation-status-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.operation-status-copy strong {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.operation-status-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.operation-icon-spin {
+  animation: operation-spin 1.2s linear infinite;
+}
+
+@keyframes operation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operation-icon-spin {
+    animation: none;
+  }
+}
+
 .operation-modal-fading,
 .operation-backdrop-fading {
   opacity: 0;

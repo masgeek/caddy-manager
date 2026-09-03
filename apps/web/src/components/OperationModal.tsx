@@ -22,6 +22,12 @@ export default function OperationModal({
       : operation?.status === "error"
         ? "danger"
         : "info";
+  const icon =
+    operation?.status === "success"
+      ? "bi-check-lg"
+      : operation?.status === "error"
+        ? "bi-exclamation-lg"
+        : "bi-arrow-repeat";
 
   useEffect(() => {
     setFading(false);
@@ -55,14 +61,25 @@ export default function OperationModal({
         ) : undefined
       }
     >
-      <div className={`alert alert-${alertType} mb-0`} role="status">
-        {isRunning && (
-          <span
-            className="spinner-border spinner-border-sm me-2"
-            aria-hidden="true"
+      <div
+        className={`operation-status operation-status-${alertType}`}
+        role="status"
+      >
+        <div className="operation-status-icon" aria-hidden="true">
+          <i
+            className={`bi ${icon} ${isRunning ? "operation-icon-spin" : ""}`}
           />
-        )}
-        {operation?.message}
+        </div>
+        <div className="operation-status-copy">
+          <strong>
+            {isRunning
+              ? "Working now"
+              : operation?.status === "success"
+                ? "Completed"
+                : "Needs attention"}
+          </strong>
+          <span>{operation?.message}</span>
+        </div>
       </div>
     </Modal>
   );
