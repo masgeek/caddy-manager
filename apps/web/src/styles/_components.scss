@@ -978,3 +978,13 @@
     transition-duration: 0.01ms !important;
   }
 }
+.operation-modal,
+.operation-backdrop {
+  transition: opacity 500ms ease;
+  opacity: 0.92;
+}
+
+.operation-modal-fading,
+.operation-backdrop-fading {
+  opacity: 0;
+}

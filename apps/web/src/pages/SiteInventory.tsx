@@ -1,9 +1,12 @@
 import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Modal, PageHeader } from "@caddy-manager/ui";
+import { PageHeader } from "@caddy-manager/ui";
 import type { SiteGroup, SiteInventory } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
+import OperationModal, {
+  type OperationState,
+} from "../components/OperationModal";
 
 export default function SiteInventory() {
   const navigate = useNavigate();
@@ -15,11 +18,7 @@ export default function SiteInventory() {
   } | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupServerId, setNewGroupServerId] = useState("");
-  const [operation, setOperation] = useState<{
-    title: string;
-    message: string;
-    status: "running" | "success" | "error";
-  } | null>(null);
+  const [operation, setOperation] = useState<OperationState | null>(null);
   const inventoryView =
     searchParams.get("view") === "caddyfile" ? "caddyfile" : "dynamic";
   const ensureMutation = useMutation({
@@ -338,36 +337,10 @@ export default function SiteInventory() {
           }
         />
       )}
-      <Modal
-        open={!!operation}
-        title={operation?.title ?? "Inventory operation"}
-        onClose={() => {
-          if (operation?.status !== "running") setOperation(null);
-        }}
-        footer={
-          operation?.status !== "running" ? (
-            <button
-              className="btn btn-secondary"
-              onClick={() => setOperation(null)}
-            >
-              Close
-            </button>
-          ) : undefined
-        }
-      >
-        <div
-          className={`alert alert-${operation?.status === "success" ? "success" : operation?.status === "error" ? "danger" : "info"} mb-0`}
-          role="status"
-        >
-          {operation?.status === "running" && (
-            <span
-              className="spinner-border spinner-border-sm me-2"
-              aria-hidden="true"
-            />
-          )}
-          {operation?.message}
-        </div>
-      </Modal>
+      <OperationModal
+        operation={operation}
+        onClose={() => setOperation(null)}
+      />
     </div>
   );
 }

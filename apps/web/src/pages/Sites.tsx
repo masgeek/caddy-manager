@@ -11,6 +11,9 @@ import type { Column } from "@caddy-manager/ui";
 import type { Site } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
 import SiteFilters from "../components/SiteFilters";
+import OperationModal, {
+  type OperationState,
+} from "../components/OperationModal";
 
 const columns: Column<Site>[] = [
   { field: "domain", headerName: "Domain" },
@@ -81,6 +84,7 @@ export default function Sites() {
   const queryClient = useQueryClient();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [operation, setOperation] = useState<OperationState | null>(null);
   const [domainFilter, setDomainFilter] = useState("");
   const [serverIdFilter, setServerIdFilter] = useState("");
   const [serverFilter, setServerFilter] = useState("");
@@ -119,44 +123,76 @@ export default function Sites() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       setDeleteId(null);
+      setOperation({
+        title: "Site deleted",
+        message: "The site was deleted successfully.",
+        status: "success",
+      });
     },
-    onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to delete site",
-      ),
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete site";
+      setFeedback(message);
+      setOperation({ title: "Delete failed", message, status: "error" });
+    },
   });
 
   const syncMutation = useMutation({
     mutationFn: (id: string) => api.syncSite(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
+      setOperation({
+        title: "Site synced",
+        message: "The site was synced successfully.",
+        status: "success",
+      });
     },
-    onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to sync site",
-      ),
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to sync site";
+      setFeedback(message);
+      setOperation({ title: "Sync failed", message, status: "error" });
+    },
   });
 
   const reconcileMutation = useMutation({
     mutationFn: () => api.reconcileSites(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
+      setOperation({
+        title: "Routes reconciled",
+        message: "Missing routes were recreated in Caddy.",
+        status: "success",
+      });
     },
-    onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to reconcile routes",
-      ),
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to reconcile routes";
+      setFeedback(message);
+      setOperation({
+        title: "Reconciliation failed",
+        message,
+        status: "error",
+      });
+    },
   });
 
   const healthCheckMutation = useMutation({
     mutationFn: () => api.checkAllSites(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
+      setOperation({
+        title: "Health check complete",
+        message: "Health was checked for all sites.",
+        status: "success",
+      });
     },
-    onError: (error) =>
-      setFeedback(
-        error instanceof Error ? error.message : "Failed to check site health",
-      ),
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to check site health";
+      setFeedback(message);
+      setOperation({ title: "Health check failed", message, status: "error" });
+    },
   });
 
   const rows = query.data || [];
@@ -215,7 +251,14 @@ export default function Sites() {
           {!row.synced && row.routeId && (
             <button
               className="btn btn-sm btn-outline-success"
-              onClick={() => syncMutation.mutate(row.id)}
+              onClick={() => {
+                setOperation({
+                  title: "Syncing site",
+                  message: "Pushing the site route to Caddy.",
+                  status: "running",
+                });
+                syncMutation.mutate(row.id);
+              }}
               title="Push to Caddy config"
             >
               <i className="bi bi-cloud-upload"></i>
@@ -353,7 +396,14 @@ export default function Sites() {
         <div className="d-flex gap-2">
           <button
             className="btn btn-outline-info"
-            onClick={() => healthCheckMutation.mutate()}
+            onClick={() => {
+              setOperation({
+                title: "Checking site health",
+                message: "Checking health for all managed sites.",
+                status: "running",
+              });
+              healthCheckMutation.mutate();
+            }}
             disabled={healthCheckMutation.isPending}
             title="Check health for all sites"
           >
@@ -362,7 +412,14 @@ export default function Sites() {
           </button>
           <button
             className="btn btn-outline-success"
-            onClick={() => reconcileMutation.mutate()}
+            onClick={() => {
+              setOperation({
+                title: "Reconciling routes",
+                message: "Recreating missing routes in Caddy.",
+                status: "running",
+              });
+              reconcileMutation.mutate();
+            }}
             disabled={reconcileMutation.isPending}
             title="Recreate missing routes in Caddy"
           >
@@ -440,8 +497,20 @@ export default function Sites() {
         title="Delete Site"
         message="Are you sure you want to delete this site?"
         confirmLabel="Delete"
-        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+        onConfirm={() => {
+          if (!deleteId) return;
+          setOperation({
+            title: "Deleting site",
+            message: "Removing the site and its managed route.",
+            status: "running",
+          });
+          deleteMutation.mutate(deleteId);
+        }}
         onCancel={() => setDeleteId(null)}
+      />
+      <OperationModal
+        operation={operation}
+        onClose={() => setOperation(null)}
       />
     </div>
   );

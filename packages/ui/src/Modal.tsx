@@ -7,6 +7,8 @@ interface ModalProps {
   footer?: React.ReactNode;
   onClose: () => void;
   size?: "sm" | "md" | "lg" | "xl";
+  className?: string;
+  backdropClassName?: string;
 }
 
 export function Modal({
@@ -16,6 +18,8 @@ export function Modal({
   footer,
   onClose,
   size = "md",
+  className,
+  backdropClassName,
 }: ModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -60,10 +64,13 @@ export function Modal({
 
   return (
     <>
-      <div className="modal-backdrop fade show" onClick={onClose} />
+      <div
+        className={`modal-backdrop fade show ${backdropClassName ?? ""}`}
+        onClick={onClose}
+      />
       <div
         ref={modalRef}
-        className="modal fade show d-block app-modal"
+        className={`modal fade show d-block app-modal ${className ?? ""}`}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"

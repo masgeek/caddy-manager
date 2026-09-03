@@ -5,6 +5,9 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api } from "../api/client";
+import OperationModal, {
+  type OperationState,
+} from "../components/OperationModal";
 
 const siteSchema = z
   .object({
@@ -259,6 +262,7 @@ export default function SiteEditor({
   const isEdit = !!id;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [reviewData, setReviewData] = useState<SiteForm | null>(null);
+  const [operation, setOperation] = useState<OperationState | null>(null);
 
   useEffect(() => {
     if (!modal) return;
@@ -398,12 +402,24 @@ export default function SiteEditor({
   );
 
   const createMutation = useMutation({
-    mutationFn: (data: SiteForm) => api.createSiteInventory({ ...toApiPayload(data), state: "draft", managementType: "dynamic" }),
+    mutationFn: (data: SiteForm) =>
+      api.createSiteInventory({
+        ...toApiPayload(data),
+        state: "draft",
+        managementType: "dynamic",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
       onClose ? onClose() : navigate("/sites");
     },
+    onError: (error) =>
+      setOperation({
+        title: "Site creation failed",
+        message:
+          error instanceof Error ? error.message : "Failed to create site",
+        status: "error",
+      }),
   });
 
   const updateMutation = useMutation({
@@ -412,6 +428,13 @@ export default function SiteEditor({
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       onClose ? onClose() : navigate("/sites");
     },
+    onError: (error) =>
+      setOperation({
+        title: "Site update failed",
+        message:
+          error instanceof Error ? error.message : "Failed to update site",
+        status: "error",
+      }),
   });
 
   const mutationError = createMutation.error ?? updateMutation.error;
@@ -944,6 +967,12 @@ export default function SiteEditor({
                   className="btn btn-primary"
                   onClick={() => {
                     setReviewData(null);
+                    setOperation({
+                      title: isEdit ? "Saving site changes" : "Creating site",
+                      message:
+                        "Writing the site configuration and applying the requested changes.",
+                      status: "running",
+                    });
                     isEdit
                       ? updateMutation.mutate(reviewData)
                       : createMutation.mutate(reviewData);
@@ -958,6 +987,10 @@ export default function SiteEditor({
             </div>
           </div>
         </div>
+        <OperationModal
+          operation={operation}
+          onClose={() => setOperation(null)}
+        />
       </>
     );
   }

@@ -14,6 +14,9 @@ import type { Column } from "@caddy-manager/ui";
 import type { Server } from "@caddy-manager/shared-types";
 import type { ImportPreviewSite } from "@caddy-manager/shared-api";
 import { api } from "../api/client";
+import OperationModal, {
+  type OperationState,
+} from "../components/OperationModal";
 
 const serverSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -48,6 +51,7 @@ export default function Servers() {
     server: Server;
     sites: ImportPreviewSite[];
   } | null>(null);
+  const [operation, setOperation] = useState<OperationState | null>(null);
 
   useEffect(() => {
     const modalOpen =
@@ -90,61 +94,139 @@ export default function Servers() {
     mutationFn: (data: ServerForm) =>
       api.createServer(serverSchema.parse(data)),
     onSuccess: () => {
+      setOperation({
+        title: "Server created",
+        message: "The Caddy server was registered.",
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
       setDialogOpen(false);
       reset();
     },
+    onError: (error) =>
+      setOperation({
+        title: "Server creation failed",
+        message:
+          error instanceof Error ? error.message : "Failed to create server",
+        status: "error",
+      }),
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: ServerForm) =>
       api.updateServer(editServer!.id, serverSchema.parse(data)),
     onSuccess: () => {
+      setOperation({
+        title: "Server updated",
+        message: "The Caddy server was updated.",
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
       setDialogOpen(false);
       setEditServer(null);
       reset();
     },
+    onError: (error) =>
+      setOperation({
+        title: "Server update failed",
+        message:
+          error instanceof Error ? error.message : "Failed to update server",
+        status: "error",
+      }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteServer(id),
     onSuccess: () => {
+      setOperation({
+        title: "Server deleted",
+        message: "The Caddy server was deleted.",
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
       setDeleteId(null);
     },
+    onError: (error) =>
+      setOperation({
+        title: "Server deletion failed",
+        message:
+          error instanceof Error ? error.message : "Failed to delete server",
+        status: "error",
+      }),
   });
 
   const healthMutation = useMutation({
     mutationFn: (id: string) => api.checkServerHealth(id),
     onSuccess: () => {
+      setOperation({
+        title: "Health check complete",
+        message: "The server health check completed.",
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
     },
+    onError: (error) =>
+      setOperation({
+        title: "Health check failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to check server health",
+        status: "error",
+      }),
   });
 
   const importMutation = useMutation({
     mutationFn: (id: string) => api.importServerSites(id),
     onSuccess: (data) => {
+      setOperation({
+        title: "Sites imported",
+        message: `${data.imported} site(s) imported, ${data.skipped} skipped.`,
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       setSnackbar(`${data.imported} site(s) imported, ${data.skipped} skipped`);
       setImportPreview(null);
     },
     onError: () => {
+      setOperation({
+        title: "Import failed",
+        message: "Failed to import sites.",
+        status: "error",
+      });
       setSnackbar("Failed to import sites");
     },
   });
 
   const previewImportMutation = useMutation({
     mutationFn: (server: Server) => api.previewServerSites(server.id),
-    onSuccess: (sites, server) => setImportPreview({ server, sites }),
-    onError: (error: Error) =>
-      setSnackbar(`Import preview failed: ${error.message}`),
+    onSuccess: (sites, server) => {
+      setImportPreview({ server, sites });
+      setOperation({
+        title: "Configuration loaded",
+        message: "The server configuration is ready to review.",
+        status: "success",
+      });
+    },
+    onError: (error: Error) => {
+      setSnackbar(`Import preview failed: ${error.message}`);
+      setOperation({
+        title: "Configuration read failed",
+        message: error.message,
+        status: "error",
+      });
+    },
   });
 
   const discoverMutation = useMutation({
     mutationFn: (url: string) => api.discoverServers(url),
     onSuccess: (data) => {
+      setOperation({
+        title: "Discovery complete",
+        message: `Discovered ${data.servers.length} server(s) and ${data.sites.length} site(s).`,
+        status: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["servers"] });
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       setDiscoverOpen(false);
@@ -154,6 +236,11 @@ export default function Servers() {
       );
     },
     onError: (err: Error) => {
+      setOperation({
+        title: "Discovery failed",
+        message: err.message,
+        status: "error",
+      });
       setSnackbar(`Discovery failed: ${err.message}`);
     },
   });
@@ -175,7 +262,14 @@ export default function Servers() {
       <div className="d-flex gap-1">
         <button
           className="btn btn-sm btn-outline-primary"
-          onClick={() => healthMutation.mutate(row.id)}
+          onClick={() => {
+            setOperation({
+              title: "Checking server health",
+              message: "Connecting to the Caddy admin API.",
+              status: "running",
+            });
+            healthMutation.mutate(row.id);
+          }}
           title="Check health"
         >
           <i className="bi bi-arrow-clockwise"></i>
@@ -192,7 +286,14 @@ export default function Servers() {
         </button>
         <button
           className="btn btn-sm btn-outline-success"
-          onClick={() => previewImportMutation.mutate(row)}
+          onClick={() => {
+            setOperation({
+              title: "Reading server configuration",
+              message: "Loading sites from the Caddy configuration.",
+              status: "running",
+            });
+            previewImportMutation.mutate(row);
+          }}
           title="Import sites from config"
         >
           <i className="bi bi-download"></i>
@@ -308,8 +409,18 @@ export default function Servers() {
             id="server-form"
             onSubmit={handleSubmit((data) =>
               editServer
-                ? updateMutation.mutate(data)
-                : createMutation.mutate(data),
+                ? (setOperation({
+                    title: "Updating server",
+                    message: "Saving the Caddy server configuration.",
+                    status: "running",
+                  }),
+                  updateMutation.mutate(data))
+                : (setOperation({
+                    title: "Registering server",
+                    message: "Saving the Caddy server configuration.",
+                    status: "running",
+                  }),
+                  createMutation.mutate(data)),
             )}
           >
             <div className="mb-3">
@@ -376,7 +487,15 @@ export default function Servers() {
                 type="button"
                 className="btn btn-info"
                 disabled={!discoverUrl || discoverMutation.isPending}
-                onClick={() => discoverMutation.mutate(discoverUrl)}
+                onClick={() => {
+                  setOperation({
+                    title: "Discovering servers",
+                    message:
+                      "Scanning the Caddy admin API and importing available sites.",
+                    status: "running",
+                  });
+                  discoverMutation.mutate(discoverUrl);
+                }}
               >
                 {discoverMutation.isPending
                   ? "Discovering..."
@@ -423,7 +542,15 @@ export default function Servers() {
                 disabled={
                   importPreview.sites.length === 0 || importMutation.isPending
                 }
-                onClick={() => importMutation.mutate(importPreview.server.id)}
+                onClick={() => {
+                  setOperation({
+                    title: "Importing sites",
+                    message:
+                      "Importing sites from the selected Caddy configuration.",
+                    status: "running",
+                  });
+                  importMutation.mutate(importPreview.server.id);
+                }}
               >
                 {importMutation.isPending ? "Importing..." : "Import Sites"}
               </button>
@@ -458,8 +585,20 @@ export default function Servers() {
         open={!!deleteId}
         title="Delete Server"
         message="Are you sure you want to delete this server?"
-        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+        onConfirm={() => {
+          if (!deleteId) return;
+          setOperation({
+            title: "Deleting server",
+            message: "Removing the registered Caddy server.",
+            status: "running",
+          });
+          deleteMutation.mutate(deleteId);
+        }}
         onCancel={() => setDeleteId(null)}
+      />
+      <OperationModal
+        operation={operation}
+        onClose={() => setOperation(null)}
       />
 
       {snackbar && (

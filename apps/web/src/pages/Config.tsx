@@ -2,10 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { JsonViewer, PageHeader } from "@caddy-manager/ui";
 import { api } from "../api/client";
+import OperationModal, {
+  type OperationState,
+} from "../components/OperationModal";
 
 export default function Config() {
   const queryClient = useQueryClient();
   const [serverId, setServerId] = useState("");
+  const [operation, setOperation] = useState<OperationState | null>(null);
   const [view, setView] = useState<"active" | "generated">("active");
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -40,6 +44,11 @@ export default function Config() {
   const reloadMutation = useMutation({
     mutationFn: () => api.reloadConfig(serverId),
     onSuccess: () => {
+      setOperation({
+        title: "Configuration reloaded",
+        message: "Caddy accepted the new configuration.",
+        status: "success",
+      });
       setSnackbar({
         open: true,
         message: "Configuration reloaded successfully",
@@ -48,6 +57,11 @@ export default function Config() {
       queryClient.invalidateQueries({ queryKey: ["config", serverId] });
     },
     onError: (error) => {
+      setOperation({
+        title: "Configuration reload failed",
+        message: errorMessage(error),
+        status: "error",
+      });
       setSnackbar({
         open: true,
         message: errorMessage(error),
@@ -115,7 +129,14 @@ export default function Config() {
         </div>
         <button
           className="btn btn-primary"
-          onClick={() => reloadMutation.mutate()}
+          onClick={() => {
+            setOperation({
+              title: "Reloading configuration",
+              message: "Applying the generated configuration to Caddy.",
+              status: "running",
+            });
+            reloadMutation.mutate();
+          }}
           disabled={!serverId || reloadMutation.isPending}
         >
           <i className="bi bi-arrow-clockwise me-1"></i>
@@ -169,6 +190,10 @@ export default function Config() {
           </div>
         </div>
       )}
+      <OperationModal
+        operation={operation}
+        onClose={() => setOperation(null)}
+      />
     </div>
   );
 }
