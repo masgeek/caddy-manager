@@ -7,7 +7,7 @@ import {
 } from "@caddy-manager/db";
 import { CaddyProvider } from "../providers/caddy";
 import { buildDynamicRoutes, syncDynamicRoutes } from "./config";
-import { ConflictError, NotFoundError } from "../lib/errors";
+import { AppError, ConflictError, NotFoundError } from "../lib/errors";
 
 const provisioningLocks = new Map<string, Promise<void>>();
 const PROVISIONABLE_STATES = new Set([
@@ -57,14 +57,50 @@ export async function ensureDynamicInfrastructure(): Promise<{
 
   for (const server of servers) {
     const provider = new CaddyProvider({ apiEndpoint: server.apiEndpoint });
-    const serverNames = await provider.getServerNames();
+    let serverNames: string[];
+    try {
+      serverNames = await provider.getServerNames();
+    } catch (error) {
+      throw caddySetupError(server, "discover Caddy server blocks", error);
+    }
     for (const serverName of serverNames) {
-      await provider.ensureDynamicRouteContainer(serverName);
+      try {
+        await provider.ensureDynamicRouteContainer(serverName);
+      } catch (error) {
+        throw caddySetupError(
+          server,
+          `ensure dynamic-sites and dynamic-site-router for server block '${serverName}'`,
+          error,
+        );
+      }
       serverBlocks += 1;
     }
   }
 
   return { servers: servers.length, serverBlocks };
+}
+
+function caddySetupError(
+  server: { id: string; name: string; apiEndpoint: string },
+  operation: string,
+  error: unknown,
+): AppError {
+  const cause = error instanceof Error ? error.message : String(error);
+  let guidance = "Check the Caddy Admin API endpoint and Caddy logs.";
+  if (/401|403/.test(cause))
+    guidance = "Check CADDY_ADMIN_TOKEN and Admin API authorization.";
+  else if (/404/.test(cause))
+    guidance = "Check that this endpoint is Caddy's Admin API on port 2019.";
+  else if (/ECONNREFUSED|ENOTFOUND|fetch failed/i.test(cause))
+    guidance = "Check that Caddy is running and reachable from the API host.";
+  else if (/abort|timed out/i.test(cause))
+    guidance = "Check Caddy responsiveness and network connectivity.";
+
+  return new AppError(
+    502,
+    `Unable to ${operation} on server '${server.name}' at ${server.apiEndpoint}: ${cause}. ${guidance}`,
+    { serverId: server.id, operation, cause },
+  );
 }
 
 export async function getInventory(id: string): Promise<SiteInventory> {

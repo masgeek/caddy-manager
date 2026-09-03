@@ -93,6 +93,28 @@ describe("site inventory", () => {
     expect(ensureDynamicRouteContainer).toHaveBeenCalledWith("srv1");
   });
 
+  it("reports which server failed while ensuring dynamic infrastructure", async () => {
+    mocks.serverFindAll.mockResolvedValueOnce([
+      {
+        id: "server-id",
+        name: "production",
+        apiEndpoint: "http://caddy:2019",
+      },
+    ]);
+    mocks.caddyConstructor.mockImplementationOnce(() => ({
+      getServerNames: vi
+        .fn()
+        .mockRejectedValue(new Error("Caddy API error: 401 Unauthorized")),
+    }));
+
+    await expect(ensureDynamicInfrastructure()).rejects.toMatchObject({
+      statusCode: 502,
+      message: expect.stringContaining(
+        "Unable to discover Caddy server blocks on server 'production'",
+      ),
+    });
+  });
+
   it("only treats intended lifecycle states as desired Caddy state", () => {
     expect(shouldProvisionInventory("draft")).toBe(false);
     expect(shouldProvisionInventory("disabled")).toBe(false);
