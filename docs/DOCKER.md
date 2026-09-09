@@ -1,11 +1,10 @@
 # Docker Deployment
 
-Caddy Manager runs as four Compose services:
+Caddy Manager runs as three Compose services:
 
 - `db`: PostgreSQL persistence.
 - `migrate`: applies Drizzle migrations and seeds the initial user.
-- `api`: Fastify API and background health jobs.
-- `web`: Nginx-hosted React application and `/api` reverse proxy.
+- `api`: Combined Fastify API and Nginx-hosted React application.
 
 The Caddy server itself remains external. The API connects to it using the
 configured Caddy Admin API endpoint.
@@ -42,9 +41,9 @@ only when the Caddy endpoint requires private-network access.
 docker compose up -d --build
 ```
 
-The migration service runs after PostgreSQL is healthy. The API starts only
-after migrations complete, and the web service starts after the API healthcheck
-passes.
+The migration service runs after PostgreSQL is healthy. The combined
+application starts only after migrations complete and exposes the web
+application on `WEB_PORT`, with `/api` proxied to the local Fastify process.
 
 Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
 
@@ -64,8 +63,8 @@ Compose persists the API log directory in the `api_logs` volume.
 ## Operations
 
 ```bash
-# Follow service logs
-docker compose logs -f api web
+# Follow application logs
+docker compose logs -f api
 
 # Inspect persisted API log files
 docker compose exec api sh -c 'tail -f /repo/logs/caddy-manager.log'
@@ -82,14 +81,15 @@ docker compose down -v
 
 ## Image Layout
 
-The active Dockerfiles are kept beside their applications:
+The combined application image uses:
 
-- `apps/api/Dockerfile`
+- `Dockerfile`
 - `apps/api/Dockerfile.migrations`
-- `apps/web/Dockerfile`
+- `docker/nginx.conf`
+- `docker/combined-entrypoint.sh`
 
-The API and migration runtime containers run as the unprivileged `caddy` user.
-The web image uses the unprivileged Nginx Alpine runtime defaults.
+The combined application and migration runtime containers run as the
+unprivileged `caddy` user.
 
 ## GitHub Actions
 
@@ -97,15 +97,15 @@ CI is defined in `.github/workflows/ci.yml` and runs typechecking, tests,
 linting, and builds on pushes and pull requests targeting `main`.
 
 Docker publishing is defined in `.github/workflows/docker.yml` and publishes
-to GitHub Container Registry. It delegates each image build to the reusable workflow
+the combined application image and migration image to GitHub Container Registry.
+It delegates each image build to the reusable workflow
 `.github/workflows/docker-build-job.yml`, which uses the local composite action
 `.github/actions/docker-build` for multi-architecture builds, metadata, layer
 caching, SBOM generation, and provenance attestations.
 
 The published image names retain their existing suffixes:
 
-- `ghcr.io/<owner>/caddy-manager-api`
-- `ghcr.io/<owner>/caddy-manager-web`
+- `ghcr.io/<owner>/caddy-manager-api` (combined API and web)
 - `ghcr.io/<owner>/caddy-manager-migrate`
 
 The workflow uses the built-in `GITHUB_TOKEN`; no Docker Hub credentials are

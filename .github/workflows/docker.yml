@@ -24,10 +24,7 @@ jobs:
         include:
           - name: api
             image: ghcr.io/${{ github.repository_owner }}/caddy-manager-api
-            dockerfile: apps/api/Dockerfile
-          - name: web
-            image: ghcr.io/${{ github.repository_owner }}/caddy-manager-web
-            dockerfile: apps/web/Dockerfile
+            dockerfile: Dockerfile
           - name: migrate
             image: ghcr.io/${{ github.repository_owner }}/caddy-manager-migrate
             dockerfile: apps/api/Dockerfile.migrations
