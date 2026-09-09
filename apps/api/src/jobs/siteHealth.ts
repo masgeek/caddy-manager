@@ -14,6 +14,7 @@ const PING_TIMEOUT = 5000;
 let task: ScheduledTask | null = null;
 let running = false;
 let activeRun: Promise<void> | null = null;
+let activeHealthCheck: Promise<void> | null = null;
 
 function describeCron(expression: string): string {
   const parts = expression.trim().split(/\s+/);
@@ -142,6 +143,17 @@ export function isHealthCheckableSite(site: { routeId?: string }): boolean {
 }
 
 export async function checkAllSites(): Promise<void> {
+  if (activeHealthCheck) return activeHealthCheck;
+
+  activeHealthCheck = runSiteHealthChecks();
+  try {
+    await activeHealthCheck;
+  } finally {
+    activeHealthCheck = null;
+  }
+}
+
+async function runSiteHealthChecks(): Promise<void> {
   const started = Date.now();
   const allSites = (await siteRepo.findAll()).filter(isHealthCheckableSite);
   console.log(`[site-health] checking ${allSites.length} API-managed sites`);
