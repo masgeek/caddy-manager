@@ -49,4 +49,34 @@ describe("SiteEditor route preview", () => {
     ]);
     expect(route?.["@id"]).toBe("fee-syncer-dev");
   });
+
+  it("adds response headers before a reverse proxy handler", () => {
+    const route = previewRoute({
+      serverId: "server-1",
+      name: "caddy",
+      baseDomain: "munywele.co.ke",
+      routeMode: "reverse_proxy",
+      upstream: "http://127.0.0.1:9621",
+      responseHeaders: [
+        {
+          name: "Content-Security-Policy",
+          value: "upgrade-insecure-requests",
+        },
+      ],
+      tlsEnabled: true,
+    } as never);
+
+    expect(route?.handle).toEqual([
+      {
+        handler: "headers",
+        response: {
+          set: { "Content-Security-Policy": ["upgrade-insecure-requests"] },
+        },
+      },
+      {
+        handler: "reverse_proxy",
+        upstreams: [{ dial: "127.0.0.1:9621" }],
+      },
+    ]);
+  });
 });

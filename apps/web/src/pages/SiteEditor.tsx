@@ -62,17 +62,56 @@ const siteSchema = z
 
 type SiteForm = z.infer<typeof siteSchema>;
 
+const COMMON_RESPONSE_HEADERS = [
+  {
+    name: "Content-Security-Policy",
+    value: "upgrade-insecure-requests",
+    label: "Content-Security-Policy: upgrade insecure requests",
+  },
+  {
+    name: "Strict-Transport-Security",
+    value: "max-age=31536000; includeSubDomains",
+    label: "Strict-Transport-Security: enforce HTTPS",
+  },
+  {
+    name: "X-Content-Type-Options",
+    value: "nosniff",
+    label: "X-Content-Type-Options: nosniff",
+  },
+  {
+    name: "X-Frame-Options",
+    value: "DENY",
+    label: "X-Frame-Options: deny framing",
+  },
+  {
+    name: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
+    label: "Referrer-Policy: strict origin",
+  },
+  {
+    name: "Permissions-Policy",
+    value: "geolocation=(), microphone=(), camera=()",
+    label: "Permissions-Policy: disable sensitive APIs",
+  },
+];
+
 function routeEditorValues(
   routeConfig: Record<string, unknown> | undefined,
 ): Partial<SiteForm> {
   if (!routeConfig) return {};
-  const handle = (
-    routeConfig.handle as Array<Record<string, unknown>> | undefined
-  )?.[0];
+  const handles = routeConfig.handle as
+    Array<Record<string, unknown>> | undefined;
+  const headerHandle = handles?.find((item) => item.handler === "headers");
+  const handle = handles?.find((item) => item.handler !== "headers");
   if (!handle) return { routeMode: "custom" };
   const handler = handle?.handler;
   const headers = handle?.headers as Record<string, string[]> | undefined;
-  const responseHeaders = Object.entries(headers ?? {}).flatMap(
+  const configuredHeaders = ((
+    headerHandle?.response as Record<string, unknown> | undefined
+  )?.set ??
+    headers ??
+    {}) as Record<string, string[]>;
+  const responseHeaders = Object.entries(configuredHeaders).flatMap(
     ([name, values]) => values.map((value) => ({ name, value })),
   );
 
@@ -83,6 +122,7 @@ function routeEditorValues(
     return {
       routeMode: "reverse_proxy",
       upstream: typeof dial === "string" ? `http://${dial}` : "",
+      responseHeaders,
     };
   }
   if (handler === "static_response") {
@@ -246,12 +286,21 @@ export function previewRoute(
   };
 
   if (data.routeMode === "reverse_proxy" && data.upstream) {
-    route.handle = [
-      {
-        handler: "reverse_proxy",
-        upstreams: [{ dial: data.upstream.replace(/^https?:\/\//, "") }],
+    const headers = data.responseHeaders.reduce<Record<string, string[]>>(
+      (result, header) => {
+        if (header.name.trim() && header.value.trim())
+          result[header.name.trim()] = [header.value.trim()];
+        return result;
       },
-    ];
+      {},
+    );
+    if (Object.keys(headers).length > 0) {
+      route.handle.push({ handler: "headers", response: { set: headers } });
+    }
+    route.handle.push({
+      handler: "reverse_proxy",
+      upstreams: [{ dial: data.upstream.replace(/^https?:\/\//, "") }],
+    });
   } else if (data.routeMode === "redirect" && data.redirectTarget) {
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
       (result, header) => {
@@ -330,6 +379,7 @@ export default function SiteEditor({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [reviewData, setReviewData] = useState<SiteForm | null>(null);
   const [operation, setOperation] = useState<OperationState | null>(null);
+  const [selectedHeaderPolicy, setSelectedHeaderPolicy] = useState("");
 
   useEffect(() => {
     if (!modal) return;
@@ -423,7 +473,6 @@ export default function SiteEditor({
         healthEndpoint: siteQuery.data.healthEndpoint ?? "",
         healthHeaders: siteQuery.data.healthHeaders ?? "",
         responseStatus: "301",
-        responseHeaders: [],
       });
     }
   }, [siteQuery.data, reset]);
@@ -640,6 +689,26 @@ export default function SiteEditor({
                 </div>
               </div>
               <div className="card-body">
+                <div className="mb-3">
+                  <label className="form-label" htmlFor="route-id">
+                    Caddy route ID
+                  </label>
+                  <input
+                    {...register("routeId")}
+                    id="route-id"
+                    className={`form-control ${errors.routeId ? "is-invalid" : ""}`}
+                    placeholder="caddy-manager"
+                  />
+                  <div className="form-text">
+                    Optional Caddy <code>@id</code>. Leave blank to generate one
+                    from the hostname.
+                  </div>
+                  {errors.routeId && (
+                    <div className="invalid-feedback">
+                      {errors.routeId.message}
+                    </div>
+                  )}
+                </div>
                 <label className="form-label" htmlFor="route-mode">
                   Route action
                 </label>
@@ -687,6 +756,92 @@ export default function SiteEditor({
                         {errors.upstream.message}
                       </div>
                     )}
+                    <div className="d-flex justify-content-between align-items-center mt-3 mb-2">
+                      <label className="form-label mb-0">
+                        Response headers
+                      </label>
+                    </div>
+                    <div className="row g-2 mb-3">
+                      <div className="col">
+                        <select
+                          className="form-select"
+                          aria-label="Common response header policy"
+                          value={selectedHeaderPolicy}
+                          onChange={(event) =>
+                            setSelectedHeaderPolicy(event.target.value)
+                          }
+                        >
+                          <option value="">Choose a common policy...</option>
+                          {COMMON_RESPONSE_HEADERS.map((header) => (
+                            <option key={header.name} value={header.name}>
+                              {header.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-auto">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          disabled={!selectedHeaderPolicy}
+                          onClick={() => {
+                            const header = COMMON_RESPONSE_HEADERS.find(
+                              (item) => item.name === selectedHeaderPolicy,
+                            );
+                            if (!header) return;
+                            responseHeaders.append({
+                              name: header.name,
+                              value: header.value,
+                            });
+                            setSelectedHeaderPolicy("");
+                          }}
+                        >
+                          Add policy
+                        </button>
+                      </div>
+                      <div className="col-auto">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() =>
+                            responseHeaders.append({ name: "", value: "" })
+                          }
+                        >
+                          Add custom header
+                        </button>
+                      </div>
+                    </div>
+                    {responseHeaders.fields.map((field, index) => (
+                      <div className="row g-2 mb-2" key={field.id}>
+                        <div className="col-5">
+                          <input
+                            {...register(`responseHeaders.${index}.name`)}
+                            className="form-control"
+                            placeholder="Content-Security-Policy"
+                          />
+                        </div>
+                        <div className="col">
+                          <input
+                            {...register(`responseHeaders.${index}.value`)}
+                            className="form-control"
+                            placeholder="upgrade-insecure-requests"
+                          />
+                        </div>
+                        <div className="col-auto">
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger"
+                            aria-label="Remove header"
+                            onClick={() => responseHeaders.remove(index)}
+                          >
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="form-text">
+                      These headers are added to responses before proxying.
+                    </div>
                   </>
                 )}
 
@@ -887,17 +1042,6 @@ export default function SiteEditor({
             <details className="editor-details mb-3">
               <summary>Advanced settings</summary>
               <div className="pt-3">
-                <label className="form-label">Route ID</label>
-                <input
-                  {...register("routeId")}
-                  className={`form-control ${errors.routeId ? "is-invalid" : ""}`}
-                  placeholder="Required for dynamic inventory"
-                />
-                {errors.routeId && (
-                  <div className="invalid-feedback">
-                    {errors.routeId.message}
-                  </div>
-                )}
                 <div className="form-check form-switch mt-3">
                   <Controller
                     name="tlsEnabled"
