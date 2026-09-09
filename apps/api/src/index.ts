@@ -2,7 +2,7 @@ import { config, validate } from "@caddy-manager/config";
 import { buildApp } from "./app.js";
 import { closeDb } from "./lib/db.js";
 import {
-  checkAllSites,
+  runSiteHealthCycle,
   startSiteHealthJob,
   stopSiteHealthJob,
 } from "./jobs/siteHealth.js";
@@ -29,10 +29,10 @@ const start = async () => {
     if (config.siteHealthEnabled) {
       app.log.info("API is listening; running initial site health checks");
       try {
-        await checkAllSites();
-        app.log.info("Initial site health checks completed");
+        await runSiteHealthCycle();
+        app.log.info("Initial site health cycle completed");
       } catch (error) {
-        app.log.error({ err: error }, "Initial site health checks failed");
+        app.log.error({ err: error }, "Initial site health cycle failed");
       }
     } else {
       app.log.info("Initial site health checks disabled by configuration");
