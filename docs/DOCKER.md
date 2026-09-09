@@ -26,6 +26,9 @@ JWT_SECRET=replace-with-a-long-random-secret
 SEED_PASSWORD=replace-me
 CADDY_ALLOWED_HOSTS=caddy,host.docker.internal
 SITE_HEALTH_ENABLED=true
+LOG_LEVEL=info
+LOG_FILE=logs/caddy-manager.log
+IMAGE_REGISTRY=ghcr.io/masgeek
 ```
 
 Add the Caddy hostname to the same Docker network as the stack when Caddy is
@@ -49,11 +52,20 @@ Set `SITE_HEALTH_ENABLED=false` to disable the API background cron job for site
 health checks, inventory housekeeping, and missing-route reconciliation. Manual
 API actions and commands such as `pnpm caddy:reconcile` remain available.
 
+The API writes structured logs to `LOG_FILE`, which defaults to
+`logs/caddy-manager.log`, and rotates that file daily. Rotated files are
+retained for 30 days. `LOG_LEVEL` defaults to `info`; use standard Pino levels
+such as `debug`, `warn`, `error`, or `fatal` when more or less detail is needed.
+Compose persists the API log directory in the `api_logs` volume.
+
 ## Operations
 
 ```bash
 # Follow service logs
 docker compose logs -f api web
+
+# Inspect persisted API log files
+docker compose exec api sh -c 'tail -f /repo/logs/caddy-manager.log'
 
 # Check service status
 docker compose ps
@@ -81,12 +93,19 @@ The web image uses the unprivileged Nginx Alpine runtime defaults.
 CI is defined in `.github/workflows/ci.yml` and runs typechecking, tests,
 linting, and builds on pushes and pull requests targeting `main`.
 
-Docker publishing is defined in `.github/workflows/docker.yml`. It delegates
-each image build to the reusable workflow
+Docker publishing is defined in `.github/workflows/docker.yml` and publishes
+to GitHub Container Registry. It delegates each image build to the reusable workflow
 `.github/workflows/docker-build-job.yml`, which uses the local composite action
 `.github/actions/docker-build` for multi-architecture builds, metadata, layer
 caching, SBOM generation, and provenance attestations.
 
-The shared Node setup is available through
-`.github/actions/setup-node-pnpm`. Docker Hub credentials must be configured as
-the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets.
+The published image names retain their existing suffixes:
+
+- `ghcr.io/<owner>/caddy-manager-api`
+- `ghcr.io/<owner>/caddy-manager-web`
+- `ghcr.io/<owner>/caddy-manager-migrate`
+
+The workflow uses the built-in `GITHUB_TOKEN`; no Docker Hub credentials are
+required. The package write permission is declared in the workflow. For private
+GHCR packages, authenticate Docker on the deployment host with a GitHub token
+that has package-read permission.

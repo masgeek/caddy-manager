@@ -6,9 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import CreatableSelect from "react-select/creatable";
 import { z } from "zod";
 import { api } from "../api/client";
-import OperationModal, {
+import OperationToast, {
   type OperationState,
-} from "../components/OperationModal";
+} from "../components/OperationToast";
 
 const siteSchema = z
   .object({
@@ -1074,7 +1074,7 @@ export default function SiteEditor({
             </div>
           </div>
         </div>
-        <OperationModal
+        <OperationToast
           operation={operation}
           onClose={() => setOperation(null)}
         />

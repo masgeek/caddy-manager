@@ -61,6 +61,8 @@ caddy-manager/
 - Configuration reload
 - Health monitoring
 - Log viewer with search and filters
+- Desired-state site inventory with provisioning lifecycle controls
+- Stacked non-blocking operation notifications
 - Audit trail
 - JWT-based authentication
 - Docker Compose deployment
@@ -107,8 +109,23 @@ through the web container on `WEB_PORT`.
 
 See [`docs/DOCKER.md`](docs/DOCKER.md) for Compose and deployment details.
 
+## Logging
+
+The API writes structured logs to a file and rotates the file daily. Configure
+the log verbosity and base path in `.env`:
+
+```env
+LOG_LEVEL=info
+LOG_FILE=logs/caddy-manager.log
+```
+
+`LOG_LEVEL` defaults to `info`. Rotated files are retained for 30 days. In
+Docker deployments, API logs are persisted in the `api_logs` Compose volume.
+See [`docs/DOCKER.md`](docs/DOCKER.md) for operational details.
+
 ## Documentation
 
 - [Docker Deployment](docs/DOCKER.md) — Compose services, configuration, and operations
+- [Site Inventory](docs/INVENTORY.md) — Lifecycle, provisioning, and deletion rules
 - [Caddy systemd Setup](docs/CADDY_SYSTEMD.md) — Persist API-managed JSON configuration across restarts
 - [Homarr Dashboard](docker/README.md) — Optional Homarr integration and proxy setup

@@ -1,8 +1,8 @@
 import { config } from "@caddy-manager/config";
 import { mkdirSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { basename, dirname, isAbsolute, resolve } from "node:path";
 import Fastify from "fastify";
-import pino from "pino";
+import { createStream } from "rotating-file-stream";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
@@ -25,11 +25,16 @@ export async function buildApp() {
     ? config.logFile
     : resolve(process.cwd(), config.logFile);
   mkdirSync(dirname(logFile), { recursive: true });
+  const logStream = createStream(basename(logFile), {
+    interval: "1d",
+    maxFiles: 30,
+    path: dirname(logFile),
+  });
 
   const app = Fastify({
     logger: {
       level: config.logLevel,
-      stream: pino.destination({ dest: logFile, mkdir: true }),
+      stream: logStream,
     },
     ajv: {
       customOptions: {

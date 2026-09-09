@@ -5,9 +5,9 @@ import Select from "react-select";
 import { PageHeader } from "@caddy-manager/ui";
 import type { SiteGroup, SiteInventory } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
-import OperationModal, {
+import OperationToast, {
   type OperationState,
-} from "../components/OperationModal";
+} from "../components/OperationToast";
 
 export default function SiteInventory() {
   const navigate = useNavigate();
@@ -393,7 +393,7 @@ export default function SiteInventory() {
           }
         />
       )}
-      <OperationModal
+      <OperationToast
         operation={operation}
         onClose={() => setOperation(null)}
       />

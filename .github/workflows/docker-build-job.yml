@@ -9,14 +9,9 @@ on:
       dockerfile:
         required: true
         type: string
-    secrets:
-      docker_username:
-        required: true
-      docker_password:
-        required: true
-
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
@@ -36,6 +31,4 @@ jobs:
         with:
           image-name: ${{ inputs.image_name }}
           dockerfile: ${{ inputs.dockerfile }}
-          docker-username: ${{ secrets.docker_username }}
-          docker-password: ${{ secrets.docker_password }}
           cache-scope: ${{ inputs.image_name }}

@@ -14,9 +14,9 @@ import type { Column } from "@caddy-manager/ui";
 import type { Server } from "@caddy-manager/shared-types";
 import type { ImportPreviewSite } from "@caddy-manager/shared-api";
 import { api } from "../api/client";
-import OperationModal, {
+import OperationToast, {
   type OperationState,
-} from "../components/OperationModal";
+} from "../components/OperationToast";
 
 const serverSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -596,7 +596,7 @@ export default function Servers() {
         }}
         onCancel={() => setDeleteId(null)}
       />
-      <OperationModal
+      <OperationToast
         operation={operation}
         onClose={() => setOperation(null)}
       />

@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { JsonViewer, PageHeader } from "@caddy-manager/ui";
 import { api } from "../api/client";
-import OperationModal, {
+import OperationToast, {
   type OperationState,
-} from "../components/OperationModal";
+} from "../components/OperationToast";
 
 export default function Config() {
   const queryClient = useQueryClient();
@@ -190,7 +190,7 @@ export default function Config() {
           </div>
         </div>
       )}
-      <OperationModal
+      <OperationToast
         operation={operation}
         onClose={() => setOperation(null)}
       />

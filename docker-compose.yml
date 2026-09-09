@@ -20,11 +20,8 @@ services:
     networks:
       - web
       - internal
-    volumes:
-      - api_logs:/repo/logs
-
   migrate:
-    image: masgeek/caddy-manager-migrate:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-migrate:${TAG:-latest}
     container_name: migrate
     build:
       context: .
@@ -51,7 +48,7 @@ services:
       - internal
 
   api:
-    image: masgeek/caddy-manager-api:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-api:${TAG:-latest}
     container_name: api
     build:
       context: .
@@ -101,7 +98,7 @@ services:
       - api_logs:/repo/logs
 
   web:
-    image: masgeek/caddy-manager-web:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-web:${TAG:-latest}
     container_name: web
     build:
       context: .

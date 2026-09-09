@@ -8,7 +8,7 @@ export interface OperationState {
   status: "running" | "success" | "error";
 }
 
-export default function OperationModal({
+export default function OperationToast({
   operation,
   onClose,
 }: {

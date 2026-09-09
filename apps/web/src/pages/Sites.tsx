@@ -11,9 +11,9 @@ import type { Column } from "@caddy-manager/ui";
 import type { Site } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
 import SiteFilters from "../components/SiteFilters";
-import OperationModal, {
+import OperationToast, {
   type OperationState,
-} from "../components/OperationModal";
+} from "../components/OperationToast";
 
 const columns: Column<Site>[] = [
   { field: "domain", headerName: "Domain" },
@@ -531,7 +531,7 @@ export default function Sites() {
         }}
         onCancel={() => setDeleteId(null)}
       />
-      <OperationModal
+      <OperationToast
         operation={operation}
         onClose={() => setOperation(null)}
       />
