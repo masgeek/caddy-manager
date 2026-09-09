@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   inventoryMarkProvisioning: vi.fn(),
   inventoryMarkProvisioned: vi.fn(),
   inventoryMarkFailed: vi.fn(),
+  inventoryDelete: vi.fn(),
   serverFindById: vi.fn(),
   serverFindAll: vi.fn(),
   siteFindByDomainAndServer: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("@caddy-manager/db", () => ({
     markProvisioning: mocks.inventoryMarkProvisioning,
     markProvisioned: mocks.inventoryMarkProvisioned,
     markFailed: mocks.inventoryMarkFailed,
+    delete: mocks.inventoryDelete,
   },
 }));
 vi.mock("../providers/caddy", () => ({
@@ -117,10 +119,41 @@ describe("site inventory", () => {
 
   it("only treats intended lifecycle states as desired Caddy state", () => {
     expect(shouldProvisionInventory("draft")).toBe(false);
-    expect(shouldProvisionInventory("disabled")).toBe(false);
+    expect(shouldProvisionInventory("disabled")).toBe(true);
     expect(shouldProvisionInventory("ready")).toBe(true);
     expect(shouldProvisionInventory("provisioned")).toBe(true);
     expect(shouldProvisionInventory("not_provisioned")).toBe(true);
+  });
+
+  it("permanently deletes a non-provisioned dynamic inventory record", async () => {
+    mocks.inventoryFindById.mockResolvedValue({
+      id: "inventory-id",
+      managementType: "dynamic",
+      state: "disabled",
+      serverId: null,
+    });
+    mocks.inventoryDelete.mockResolvedValue(true);
+
+    const { deleteInventory } = await import("./inventory");
+    await expect(deleteInventory("inventory-id")).resolves.toBeUndefined();
+    expect(mocks.inventoryDelete).toHaveBeenCalledWith("inventory-id");
+  });
+
+  it("rejects deleting a provisioned inventory record", async () => {
+    mocks.inventoryDelete.mockClear();
+    mocks.inventoryFindById.mockResolvedValue({
+      id: "inventory-id",
+      managementType: "dynamic",
+      state: "provisioned",
+      serverId: "server-id",
+      routeId: "route-id",
+    });
+
+    const { deleteInventory } = await import("./inventory");
+    await expect(deleteInventory("inventory-id")).rejects.toThrow(
+      "must be disabled before deletion",
+    );
+    expect(mocks.inventoryDelete).not.toHaveBeenCalled();
   });
 
   it("provisions inventory and creates the observed site only after Caddy sync", async () => {

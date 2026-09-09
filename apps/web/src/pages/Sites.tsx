@@ -208,7 +208,7 @@ export default function Sites() {
   const domainOptions = [...new Set(viewRows.map((row) => row.domain))].sort();
   const routeIdOptions = [
     ...new Set(
-      viewRows
+      rows
         .map((row) => row.routeId)
         .filter((value): value is string => Boolean(value)),
     ),
@@ -382,33 +382,39 @@ export default function Sites() {
         </label>
       </nav>
 
+      <section className="card p-3 mb-3 sites-filter-panel">
+        <div className="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+          <div className="page-eyebrow mb-0">Filter sites</div>
+          <SiteFilters
+            domains={domainOptions}
+            routeIds={routeIdOptions}
+            servers={serverIdOptions.map((serverId) => ({
+              value: serverId,
+              label: serverNames.get(serverId) ?? serverId,
+            }))}
+            serverBlocks={serverOptions}
+            statuses={statusOptions}
+            values={{
+              domain: domainFilter,
+              serverId: serverIdFilter,
+              serverBlock: serverFilter,
+              status: statusFilter,
+              routeId: routeIdFilter,
+            }}
+            onChange={(filter, value) => {
+              if (filter === "domain") setDomainFilter(value);
+              if (filter === "serverId") setServerIdFilter(value);
+              if (filter === "serverBlock") setServerFilter(value);
+              if (filter === "status") setStatusFilter(value);
+              if (filter === "routeId") setRouteIdFilter(value);
+              setSitePage(0);
+            }}
+          />
+        </div>
+      </section>
+
       <div className="sites-toolbar d-flex justify-content-between align-items-center mb-3">
         <div className="page-eyebrow mb-0">Managed routes</div>
-        <SiteFilters
-          domains={domainOptions}
-          routeIds={routeIdOptions}
-          servers={serverIdOptions.map((serverId) => ({
-            value: serverId,
-            label: serverNames.get(serverId) ?? serverId,
-          }))}
-          serverBlocks={serverOptions}
-          statuses={statusOptions}
-          values={{
-            domain: domainFilter,
-            serverId: serverIdFilter,
-            serverBlock: serverFilter,
-            status: statusFilter,
-            routeId: routeIdFilter,
-          }}
-          onChange={(filter, value) => {
-            if (filter === "domain") setDomainFilter(value);
-            if (filter === "serverId") setServerIdFilter(value);
-            if (filter === "serverBlock") setServerFilter(value);
-            if (filter === "status") setStatusFilter(value);
-            if (filter === "routeId") setRouteIdFilter(value);
-            setSitePage(0);
-          }}
-        />
         <div className="d-flex gap-2">
           <button
             className="btn btn-outline-info"

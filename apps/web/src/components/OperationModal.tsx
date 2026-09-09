@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Modal } from "@caddy-manager/ui";
+import { useEffect, useRef } from "react";
+import toast from "react-hot-toast";
+import { notificationConfig } from "../config/notifications";
 
 export interface OperationState {
   title: string;
@@ -14,78 +15,25 @@ export default function OperationModal({
   operation: OperationState | null;
   onClose: () => void;
 }) {
-  const [fading, setFading] = useState(false);
-  const isRunning = operation?.status === "running";
-  const alertType =
-    operation?.status === "success"
-      ? "success"
-      : operation?.status === "error"
-        ? "danger"
-        : "info";
-  const icon =
-    operation?.status === "success"
-      ? "bi-check-lg"
-      : operation?.status === "error"
-        ? "bi-exclamation-lg"
-        : "bi-arrow-repeat";
+  const toastId = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    setFading(false);
-    if (!operation || isRunning) return;
-    const fadeTimer = window.setTimeout(() => setFading(true), 4500);
-    const closeTimer = window.setTimeout(onClose, 5000);
-    return () => {
-      window.clearTimeout(fadeTimer);
-      window.clearTimeout(closeTimer);
-    };
-  }, [operation, isRunning]);
+    if (!operation) return;
 
-  return (
-    <Modal
-      open={!!operation}
-      title={operation?.title ?? "Operation"}
-      onClose={isRunning ? () => undefined : onClose}
-      className={
-        fading ? "operation-modal operation-modal-fading" : "operation-modal"
-      }
-      backdropClassName={
-        fading
-          ? "operation-backdrop operation-backdrop-fading"
-          : "operation-backdrop"
-      }
-      footer={
-        !isRunning ? (
-          <button className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
-        ) : undefined
-      }
-    >
-      <div
-        className={`operation-status operation-status-${alertType}`}
-        role="status"
-      >
-        <div className="operation-status-icon" aria-hidden="true">
-          <i
-            className={`bi ${icon} ${isRunning ? "operation-icon-spin" : ""}`}
-          />
-        </div>
-        <div className="operation-status-copy">
-          <strong>
-            {isRunning
-              ? "Working now"
-              : operation?.status === "success"
-                ? "Completed"
-                : "Needs attention"}
-          </strong>
-          <span>{operation?.message}</span>
-          {isRunning && (
-            <div className="operation-progress" aria-hidden="true">
-              <span />
-            </div>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
+    const id = toastId.current ?? `${operation.title}-${Date.now()}`;
+    toastId.current = id;
+    const message = `${operation.title}: ${operation.message}`;
+
+    if (operation.status === "running") {
+      toast.loading(message, { id });
+      return;
+    }
+
+    const show = operation.status === "success" ? toast.success : toast.error;
+    show(message, { id, duration: notificationConfig.delay });
+    const closeTimer = window.setTimeout(onClose, notificationConfig.delay);
+    return () => window.clearTimeout(closeTimer);
+  }, [operation, onClose]);
+
+  return null;
 }

@@ -78,4 +78,14 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
       return inventoryService.disableInventory(id);
     },
   );
+
+  app.delete(
+    "/site-inventory/:id",
+    { preHandler: app.authorize(["admin", "operator"]) },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      await inventoryService.deleteInventory(id);
+      return reply.status(204).send();
+    },
+  );
 }

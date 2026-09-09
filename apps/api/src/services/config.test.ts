@@ -294,6 +294,35 @@ describe("site config preservation", () => {
     ).toEqual([{ host: ["prod-a.example.com", "prod-b.example.com"] }]);
   });
 
+  it("keeps all hosts from an edited grouped route", () => {
+    const [route] = buildDynamicRoutes([
+      {
+        domain: "koelel.munywele.co.ke",
+        routeId: "fee-syncer-prod",
+        routeConfig: {
+          "@id": "fee-syncer-prod",
+          match: [
+            {
+              host: ["koelel.munywele.co.ke", "utumishi.munywele.co.ke"],
+            },
+          ],
+          handle: [
+            {
+              handler: "reverse_proxy",
+              upstreams: [{ dial: "127.0.0.1:9400" }],
+            },
+          ],
+        },
+        tlsEnabled: true,
+      } as never,
+    ]);
+
+    expect((route.match as Array<Record<string, unknown>>)[0].host).toEqual([
+      "koelel.munywele.co.ke",
+      "utumishi.munywele.co.ke",
+    ]);
+  });
+
   it("is idempotent for duplicate hosts and removes the last service route", () => {
     const site = {
       domain: "same.example.com",

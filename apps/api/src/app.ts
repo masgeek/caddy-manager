@@ -1,5 +1,8 @@
 import { config } from "@caddy-manager/config";
+import { mkdirSync } from "node:fs";
+import { dirname, isAbsolute, resolve } from "node:path";
 import Fastify from "fastify";
+import pino from "pino";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
@@ -18,9 +21,15 @@ import { registerInventoryRoutes } from "./routes/inventory";
 import { registerSiteGroupRoutes } from "./routes/site-groups";
 
 export async function buildApp() {
+  const logFile = isAbsolute(config.logFile)
+    ? config.logFile
+    : resolve(process.cwd(), config.logFile);
+  mkdirSync(dirname(logFile), { recursive: true });
+
   const app = Fastify({
     logger: {
       level: config.logLevel,
+      stream: pino.destination({ dest: logFile, mkdir: true }),
     },
     ajv: {
       customOptions: {

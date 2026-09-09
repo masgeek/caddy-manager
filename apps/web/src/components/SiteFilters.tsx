@@ -70,26 +70,26 @@ function FilterSearch({
   options: string[];
   onChange: (value: string) => void;
 }) {
-  const listId = `${id}-options`;
   return (
     <>
       <label className="visually-hidden" htmlFor={id}>
         {label}
       </label>
-      <input
-        id={id}
-        className="form-control"
-        list={listId}
-        value={value}
+      <Select
+        inputId={id}
+        className="site-filter-search"
+        classNamePrefix="site-select"
+        options={options.map((option) => ({ value: option, label: option }))}
+        value={value ? { value, label: value } : null}
+        onChange={(option) => onChange(option?.value ?? "")}
+        isClearable
+        isSearchable
+        placeholder={label.replace("Filter by ", "")}
         aria-label={label}
-        placeholder="Route ID"
-        onChange={(event) => onChange(event.target.value)}
+        menuPortalTarget={document.body}
+        menuPosition="fixed"
+        styles={{ menuPortal: (base) => ({ ...base, zIndex: 1055 }) }}
       />
-      <datalist id={listId}>
-        {options.map((option) => (
-          <option key={option} value={option} />
-        ))}
-      </datalist>
     </>
   );
 }
@@ -160,3 +160,4 @@ export default function SiteFilters({
     </div>
   );
 }
+import Select from "react-select";

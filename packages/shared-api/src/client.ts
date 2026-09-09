@@ -233,6 +233,10 @@ export class ApiClient {
     });
   }
 
+  async deleteSiteInventory(id: string): Promise<void> {
+    return this.request(`/site-inventory/${id}`, { method: "DELETE" });
+  }
+
   // Config
   async getConfig(serverId: string): Promise<Record<string, unknown>> {
     return this.request(`/config?serverId=${encodeURIComponent(serverId)}`);

@@ -15,6 +15,7 @@ const PROVISIONABLE_STATES = new Set([
   "provisioning",
   "provisioned",
   "not_provisioned",
+  "disabled",
 ]);
 
 export function shouldProvisionInventory(
@@ -188,6 +189,7 @@ export async function provisionInventory(id: string): Promise<SiteInventory> {
       "provisioning",
       "provisioned",
       "not_provisioned",
+      "disabled",
     ].includes(requested.state)
   ) {
     throw new ConflictError(
@@ -299,6 +301,23 @@ export async function disableInventory(id: string): Promise<SiteInventory> {
     }
   }
   return getInventory(id);
+}
+
+export async function deleteInventory(id: string): Promise<void> {
+  const item = await getInventory(id);
+  if (item.managementType === "caddyfile") {
+    throw new ConflictError(
+      "Caddyfile-managed inventory cannot be permanently deleted",
+    );
+  }
+  if (item.state === "provisioned") {
+    throw new ConflictError(
+      "A provisioned inventory site must be disabled before deletion",
+    );
+  }
+
+  const deleted = await siteInventoryRepo.delete(id);
+  if (!deleted) throw new NotFoundError("Site inventory", id);
 }
 
 export async function disableInventoryForSite(

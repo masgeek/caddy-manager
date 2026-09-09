@@ -1,9 +1,96 @@
 import type { Site } from "@caddy-manager/shared-types";
-import { siteRepo, serverRepo } from "@caddy-manager/db";
+import {
+  backfillSiteInventory,
+  siteInventoryRepo,
+  siteRepo,
+  serverRepo,
+} from "@caddy-manager/db";
 import { CaddyProvider } from "../providers/caddy";
 import { buildCaddyRoute, syncDynamicRoutes } from "./config";
 import { NotFoundError } from "../lib/errors";
 import { disableInventoryForSite } from "./inventory";
+
+function routeHosts(
+  routeConfig: Record<string, unknown> | undefined,
+): string[] {
+  const match = (
+    routeConfig?.match as Array<Record<string, unknown>> | undefined
+  )?.[0];
+  return Array.isArray(match?.host)
+    ? match.host.filter((host): host is string => typeof host === "string")
+    : [];
+}
+
+async function syncGroupedSiteRecords(
+  site: Site,
+  routeHostsToKeep: string[],
+): Promise<void> {
+  if (!site.routeId || routeHostsToKeep.length === 0) return;
+
+  const desiredHosts = new Set(routeHostsToKeep);
+  const groupedSites = (await siteRepo.findByServer(site.serverId)).filter(
+    (candidate) => candidate.routeId === site.routeId,
+  );
+
+  for (const candidate of groupedSites) {
+    if (candidate.id === site.id || desiredHosts.has(candidate.domain))
+      continue;
+    const inventory = await siteInventoryRepo.findByDomainAndServer(
+      candidate.domain,
+      site.serverId,
+    );
+    if (inventory) await siteInventoryRepo.delete(inventory.id);
+    await siteRepo.delete(candidate.id);
+  }
+
+  for (const domain of desiredHosts) {
+    let candidate = await siteRepo.findByDomainAndServer(domain, site.serverId);
+    if (!candidate) {
+      candidate = await siteRepo.create({
+        serverId: site.serverId,
+        domain,
+        upstream: site.upstream,
+        routeId: site.routeId,
+        caddyServerName: site.caddyServerName,
+        routeConfig: site.routeConfig,
+        tlsEnabled: site.tlsEnabled,
+        healthEndpoint: site.healthEndpoint,
+        healthHeaders: site.healthHeaders,
+      });
+    } else if (candidate.id !== site.id) {
+      candidate =
+        (await siteRepo.update(candidate.id, {
+          routeId: site.routeId,
+          caddyServerName: site.caddyServerName,
+          routeConfig: site.routeConfig,
+          tlsEnabled: site.tlsEnabled,
+          upstream: site.upstream,
+        })) ?? candidate;
+    }
+  }
+
+  await backfillSiteInventory();
+  for (const domain of desiredHosts) {
+    const inventory = await siteInventoryRepo.findByDomainAndServer(
+      domain,
+      site.serverId,
+    );
+    const candidate = await siteRepo.findByDomainAndServer(
+      domain,
+      site.serverId,
+    );
+    if (inventory && candidate) {
+      await siteInventoryRepo.update(inventory.id, {
+        managementType: "dynamic",
+        routeId: site.routeId,
+        caddyServerName: site.caddyServerName,
+        upstream: site.upstream,
+        routeConfig: site.routeConfig,
+        tlsEnabled: site.tlsEnabled,
+      });
+    }
+  }
+}
 
 export async function listSites(serverId?: string): Promise<Site[]> {
   return siteRepo.findAll(serverId);
@@ -38,6 +125,7 @@ export async function updateSite(
   }
 
   const merged = { ...existing, ...data };
+  const groupedRouteHosts = routeHosts(merged.routeConfig);
 
   if (existing.routeId) {
     const oldServer = await serverRepo.findById(existing.serverId);
@@ -92,7 +180,11 @@ export async function updateSite(
       const sites = (await siteRepo.findByServer(existing.serverId))
         .filter(
           (site) =>
-            !site.caddyServerName || site.caddyServerName === serverName,
+            (!site.caddyServerName || site.caddyServerName === serverName) &&
+            (site.id === existing.id ||
+              site.routeId !== newRouteId ||
+              groupedRouteHosts.length === 0 ||
+              groupedRouteHosts.includes(site.domain)),
         )
         .map((site) => (site.id === existing.id ? (merged as Site) : site));
       await syncDynamicRoutes(oldProvider, serverName, sites);
@@ -103,6 +195,8 @@ export async function updateSite(
 
   const site = await siteRepo.update(id, data);
   if (!site) throw new NotFoundError("Site", id);
+
+  await syncGroupedSiteRecords(site, routeHosts(site.routeConfig));
 
   if (!site.synced) {
     await siteRepo.updateSyncedStatus(site.id, true);

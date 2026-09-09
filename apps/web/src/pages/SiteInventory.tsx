@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import Select from "react-select";
 import { PageHeader } from "@caddy-manager/ui";
 import type { SiteGroup, SiteInventory } from "@caddy-manager/shared-types";
 import { api } from "../api/client";
@@ -18,6 +19,7 @@ export default function SiteInventory() {
   } | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupServerId, setNewGroupServerId] = useState("");
+  const [routeIdFilter, setRouteIdFilter] = useState("");
   const [operation, setOperation] = useState<OperationState | null>(null);
   const inventoryView =
     searchParams.get("view") === "caddyfile" ? "caddyfile" : "dynamic";
@@ -97,11 +99,14 @@ export default function SiteInventory() {
       action,
     }: {
       id: string;
-      action: "ready" | "provision" | "disable";
+      action: "ready" | "provision" | "disable" | "delete";
     }) => {
-      if (action === "ready") return api.markInventoryReady(id);
-      if (action === "provision") return api.provisionInventory(id);
-      return api.disableInventory(id);
+      if (action === "ready")
+        return api.markInventoryReady(id).then(() => undefined);
+      if (action === "provision")
+        return api.provisionInventory(id).then(() => undefined);
+      if (action === "delete") return api.deleteSiteInventory(id);
+      return api.disableInventory(id).then(() => undefined);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
@@ -139,11 +144,24 @@ export default function SiteInventory() {
     });
   };
 
-  const rows = (query.data ?? []).filter(
-    (row) =>
+  const rows = (query.data ?? []).filter((row) => {
+    const matchesView =
       row.managementType ===
-      (inventoryView === "caddyfile" ? "caddyfile" : "dynamic"),
-  );
+      (inventoryView === "caddyfile" ? "caddyfile" : "dynamic");
+    const routeId = row.routeId ?? "";
+    return (
+      matchesView &&
+      (!routeIdFilter ||
+        routeId.toLowerCase().includes(routeIdFilter.toLowerCase()))
+    );
+  });
+  const routeIdOptions = [
+    ...new Set(
+      (query.data ?? [])
+        .map((row) => row.routeId)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ].sort();
 
   const changeInventoryView = (view: "dynamic" | "caddyfile") => {
     const nextParams = new URLSearchParams(searchParams);
@@ -224,6 +242,34 @@ export default function SiteInventory() {
         </button>
       </nav>
 
+      <section className="card p-3 mb-3 inventory-filter-panel">
+        <div className="inventory-filter-bar">
+          <label htmlFor="inventory-route-id-filter">Filter by route ID</label>
+          <Select
+            inputId="inventory-route-id-filter"
+            className="inventory-route-filter"
+            classNamePrefix="site-select"
+            options={routeIdOptions.map((routeId) => ({
+              value: routeId,
+              label: routeId,
+            }))}
+            value={
+              routeIdFilter
+                ? { value: routeIdFilter, label: routeIdFilter }
+                : null
+            }
+            onChange={(option) => setRouteIdFilter(option?.value ?? "")}
+            isClearable
+            isSearchable
+            placeholder="Filter by route ID"
+            aria-label="Filter by route ID"
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            styles={{ menuPortal: (base) => ({ ...base, zIndex: 1055 }) }}
+          />
+        </div>
+      </section>
+
       <section className="card p-3 mb-3">
         <div className="d-flex gap-2 align-items-center flex-wrap">
           <strong className="me-2">Create group</strong>
@@ -302,11 +348,21 @@ export default function SiteInventory() {
           rows={rows}
           groups={groupsQuery.data ?? []}
           onAction={(id, action) => {
+            if (
+              action === "delete" &&
+              !window.confirm(
+                "Permanently delete this inventory definition? This cannot be undone.",
+              )
+            ) {
+              return;
+            }
             setOperation({
               title:
                 action === "provision"
                   ? "Provisioning site"
-                  : "Updating site inventory",
+                  : action === "delete"
+                    ? "Deleting inventory site"
+                    : "Updating site inventory",
               message: "Applying the requested inventory change. Please wait.",
               status: "running",
             });
@@ -353,7 +409,10 @@ function InventoryTable({
 }: {
   rows: SiteInventory[];
   groups: SiteGroup[];
-  onAction: (id: string, action: "ready" | "provision" | "disable") => void;
+  onAction: (
+    id: string,
+    action: "ready" | "provision" | "disable" | "delete",
+  ) => void;
   onGroupChange: (id: string, groupId: string | null) => void;
 }) {
   if (rows.length === 0) {
@@ -376,7 +435,11 @@ function InventoryTable({
         <thead>
           <tr>
             <th>Domain</th>
+            <th>Site ID</th>
             <th>Route ID</th>
+            <th>Server Block</th>
+            <th>Upstream</th>
+            <th>TLS</th>
             <th>Type</th>
             <th>Group</th>
             <th>State</th>
@@ -387,7 +450,7 @@ function InventoryTable({
           {[...groupedRows.entries()].map(([groupId, groupRows]) => (
             <Fragment key={groupId}>
               <tr className="table-light" key={`${groupId}-header`}>
-                <th colSpan={6}>
+                <th colSpan={10}>
                   {groupId === "ungrouped" ? "Ungrouped sites" : groupId}
                   <span className="text-muted ms-2">({groupRows.length})</span>
                 </th>
@@ -396,8 +459,14 @@ function InventoryTable({
                 <tr key={row.id}>
                   <td>{row.domain}</td>
                   <td>
+                    <code>{row.provisionedSiteId ?? "Not provisioned"}</code>
+                  </td>
+                  <td>
                     <code>{row.routeId ?? "Caddyfile"}</code>
                   </td>
+                  <td>{row.caddyServerName ?? "Default block"}</td>
+                  <td>{row.upstream ?? "-"}</td>
+                  <td>{row.tlsEnabled ? "Yes" : "No"}</td>
                   <td>{row.managementType}</td>
                   <td>
                     <select
@@ -437,9 +506,12 @@ function InventoryTable({
                         </button>
                       )}
                     {row.managementType === "dynamic" &&
-                      ["ready", "failed", "not_provisioned"].includes(
-                        row.state,
-                      ) && (
+                      [
+                        "ready",
+                        "failed",
+                        "not_provisioned",
+                        "disabled",
+                      ].includes(row.state) && (
                         <button
                           className="btn btn-sm btn-outline-success"
                           onClick={() => onAction(row.id, "provision")}
@@ -454,6 +526,16 @@ function InventoryTable({
                           onClick={() => onAction(row.id, "disable")}
                         >
                           Disable
+                        </button>
+                      )}
+                    {row.managementType === "dynamic" &&
+                      row.state !== "provisioned" && (
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => onAction(row.id, "delete")}
+                          title="Permanently delete this inventory definition"
+                        >
+                          <i className="bi bi-trash3" aria-hidden="true" />
                         </button>
                       )}
                     {row.managementType === "caddyfile" && (

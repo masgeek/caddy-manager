@@ -21,6 +21,7 @@ dotenv.config({ path: findRootEnv(__dirname) });
 export const config = {
   port: Number(process.env.PORT ?? "3500"),
   logLevel: process.env.LOG_LEVEL ?? "info",
+  logFile: process.env.LOG_FILE ?? "logs/caddy-manager.log",
   siteHealthEnabled: process.env.SITE_HEALTH_ENABLED !== "false",
   siteCheckCron: process.env.SITE_CHECK_CRON ?? "*/5 * * * *",
 

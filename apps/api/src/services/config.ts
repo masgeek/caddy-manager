@@ -297,6 +297,9 @@ export function buildDynamicRoutes(
       routeConfig: site.routeConfig,
     });
     const configuration = `${routeBehavior(route)}|tls=${site.tlsEnabled}`;
+    const routeHosts = ((
+      site.routeConfig?.match as Array<Record<string, unknown>> | undefined
+    )?.[0]?.host ?? []) as string[];
     const groupKey = `${site.serverId ?? ""}:${site.caddyServerName ?? ""}:${site.routeId}`;
     const group = groups.get(groupKey);
     if (group) {
@@ -311,7 +314,7 @@ export function buildDynamicRoutes(
     groups.set(groupKey, {
       routeId: site.routeId,
       route,
-      hosts: new Set([site.domain]),
+      hosts: new Set(routeHosts.length > 0 ? routeHosts : [site.domain]),
       configuration,
     });
   }
