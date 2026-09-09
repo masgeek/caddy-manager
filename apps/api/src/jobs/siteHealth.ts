@@ -242,6 +242,12 @@ export async function housekeepSiteProvisioning(): Promise<{
   return { inventoryMarked, sitesMarked };
 }
 
+export async function runSiteHealthCycle(): Promise<void> {
+  await housekeepSiteProvisioning();
+  await checkAllSites();
+  await reconcileAllSites();
+}
+
 function routeContainsSite(
   route: Record<string, unknown>,
   site: { domain: string; routeId?: string },
@@ -427,13 +433,9 @@ export function startSiteHealthJob(): void {
   task = cron.schedule(expression, () => {
     if (running) return;
     running = true;
-    const run = Promise.resolve()
-      .then(() => housekeepSiteProvisioning())
-      .then(() => checkAllSites())
-      .then(async () => {
-        await reconcileAllSites();
-      })
-      .catch((err) => console.error("[site-health] job failed", err));
+    const run = runSiteHealthCycle().catch((err) =>
+      console.error("[site-health] job failed", err),
+    );
     activeRun = run;
     void run.finally(() => {
       running = false;
