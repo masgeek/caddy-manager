@@ -1,19 +1,135 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@caddy-manager/db", () => ({
+  backfillSiteInventory: vi.fn(),
   serverRepo: {},
-  siteRepo: {},
+  siteRepo: {
+    create: vi.fn(),
+    findByDomainAndServer: vi.fn(),
+    update: vi.fn(),
+  },
 }));
+
+import { backfillSiteInventory, siteRepo } from "@caddy-manager/db";
 
 import {
   buildCaddyConfig,
   buildCaddyRoute,
   buildDynamicRoutes,
   deriveBaseDomain,
+  importSitesFromConfig,
+  normalizeHostname,
   parseSitesFromConfig,
 } from "./config";
 
 describe("site config preservation", () => {
+  it("normalizes hostnames before deduplicating imported sites", () => {
+    expect(normalizeHostname(" Example.COM... ")).toBe("example.com");
+
+    const [site] = parseSitesFromConfig({
+      apps: {
+        http: {
+          servers: {
+            proxy: {
+              routes: [
+                {
+                  "@id": "first-route",
+                  match: [{ host: ["Example.COM"] }],
+                  handle: [],
+                },
+                {
+                  "@id": "second-route",
+                  match: [{ host: ["example.com."] }],
+                  handle: [],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+
+    expect(site).toMatchObject({
+      domain: "example.com",
+      routeId: "first-route",
+    });
+    expect(
+      parseSitesFromConfig({
+        apps: {
+          http: {
+            servers: {
+              proxy: {
+                routes: [
+                  {
+                    match: [{ host: ["Example.COM", "example.com."] }],
+                    handle: [],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }),
+    ).toHaveLength(1);
+  });
+
+  it("persists route IDs when importing new and existing sites", async () => {
+    const route = {
+      "@id": "imported-route",
+      match: [{ host: ["example.com"] }],
+      handle: [
+        { handler: "reverse_proxy", upstreams: [{ dial: "backend:8080" }] },
+      ],
+    };
+    const created = { domain: "example.com", routeId: "imported-route" };
+    const updated = {
+      domain: "existing.example.com",
+      routeId: "existing-route",
+    };
+
+    vi.mocked(siteRepo.findByDomainAndServer)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce({ id: "site-2" } as never);
+    vi.mocked(siteRepo.create).mockResolvedValue(created as never);
+    vi.mocked(siteRepo.update).mockResolvedValue(updated as never);
+    vi.mocked(backfillSiteInventory).mockResolvedValue(0);
+
+    const provider = {
+      getConfig: vi.fn().mockResolvedValue({
+        apps: {
+          http: {
+            servers: {
+              proxy: {
+                routes: [
+                  route,
+                  {
+                    ...route,
+                    "@id": "existing-route",
+                    match: [{ host: ["existing.example.com"] }],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }),
+    };
+
+    const result = await importSitesFromConfig(
+      { id: "server-1" } as never,
+      provider as never,
+    );
+
+    expect(siteRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ routeId: "imported-route" }),
+    );
+    expect(siteRepo.update).toHaveBeenCalledWith(
+      "site-2",
+      expect.objectContaining({ routeId: "existing-route" }),
+    );
+    expect(result.sites).toEqual([created, updated]);
+  });
+
   it.each([
     ["dashboard.agwise.org", "agwise.org"],
     ["api.munywele.ci.ke", "munywele.ci.ke"],

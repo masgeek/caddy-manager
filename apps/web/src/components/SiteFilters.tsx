@@ -5,6 +5,7 @@ interface SiteFilterOption {
 
 interface SiteFiltersProps {
   domains: string[];
+  routeIds: string[];
   servers: SiteFilterOption[];
   serverBlocks: string[];
   statuses: string[];
@@ -13,6 +14,7 @@ interface SiteFiltersProps {
     serverId: string;
     serverBlock: string;
     status: string;
+    routeId: string;
   };
   onChange: (filter: keyof SiteFiltersProps["values"], value: string) => void;
 }
@@ -55,11 +57,49 @@ function FilterSelect({
   );
 }
 
+function FilterSearch({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const listId = `${id}-options`;
+  return (
+    <>
+      <label className="visually-hidden" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        id={id}
+        className="form-control"
+        list={listId}
+        value={value}
+        aria-label={label}
+        placeholder="Route ID"
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <datalist id={listId}>
+        {options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+    </>
+  );
+}
+
 export default function SiteFilters({
   domains,
   servers,
   serverBlocks,
   statuses,
+  routeIds,
   values,
   onChange,
 }: SiteFiltersProps) {
@@ -68,6 +108,13 @@ export default function SiteFilters({
 
   return (
     <div className="sites-filter-controls d-flex gap-2 justify-content-end">
+      <FilterSearch
+        id="site-route-id-filter"
+        label="Filter by route ID"
+        value={values.routeId}
+        options={routeIds}
+        onChange={(value) => onChange("routeId", value)}
+      />
       <FilterSelect
         id="site-domain-filter"
         label="Filter by domain"

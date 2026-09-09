@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import type { Site } from "@caddy-manager/shared-types";
 import { db } from "../connection";
 import { sites } from "../schema";
@@ -135,7 +135,12 @@ class SiteRepository {
     const [row] = await db
       .select()
       .from(sites)
-      .where(and(eq(sites.domain, domain), eq(sites.serverId, serverId)))
+      .where(
+        and(
+          sql`lower(trim(trailing '.' from ${sites.domain})) = lower(trim(trailing '.' from ${domain}))`,
+          eq(sites.serverId, serverId),
+        ),
+      )
       .limit(1);
     return row ? toSite(row) : undefined;
   }

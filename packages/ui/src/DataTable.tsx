@@ -7,6 +7,7 @@ interface DataTableProps<T> {
   rows: T[];
   loading?: boolean;
   getRowId: (row: T) => string;
+  groupBy?: (row: T) => string;
   page?: number;
   pageSize?: number;
   totalCount?: number;
@@ -22,7 +23,9 @@ export function DataTable<T>({
   pageSize = 20,
   totalCount,
   onPageChange,
+  groupBy,
 }: DataTableProps<T>) {
+  let previousGroup: string | undefined;
   return (
     <div>
       <div className="table-responsive">
@@ -47,17 +50,30 @@ export function DataTable<T>({
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={getRowId(row)}>
-                  {columns.map((col) => (
-                    <td key={String(col.field)}>
-                      {col.render
-                        ? col.render(row[col.field as keyof T], row)
-                        : String(row[col.field as keyof T] ?? "")}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.flatMap((row) => {
+                const group = groupBy?.(row);
+                const groupRow =
+                  group && group !== previousGroup ? (
+                    <tr className="table-group-row" key={`group-${group}`}>
+                      <th colSpan={columns.length} scope="rowgroup">
+                        {group}
+                      </th>
+                    </tr>
+                  ) : null;
+                previousGroup = group;
+                return [
+                  groupRow,
+                  <tr key={getRowId(row)}>
+                    {columns.map((col) => (
+                      <td key={String(col.field)}>
+                        {col.render
+                          ? col.render(row[col.field as keyof T], row)
+                          : String(row[col.field as keyof T] ?? "")}
+                      </td>
+                    ))}
+                  </tr>,
+                ].filter(Boolean);
+              })
             )}
           </tbody>
         </table>

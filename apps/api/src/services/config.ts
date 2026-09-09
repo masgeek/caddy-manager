@@ -56,7 +56,7 @@ function collectTlsDomains(
       for (const p of policies) {
         const subjects = p.subjects as string[] | undefined;
         if (subjects) {
-          for (const s of subjects) domains.add(s);
+          for (const s of subjects) domains.add(normalizeHostname(s));
         }
       }
     }
@@ -68,11 +68,15 @@ function collectTlsDomains(
   if (certs) {
     const automated = (certs.automate ?? certs.auto) as string[] | undefined;
     if (automated) {
-      for (const d of automated) domains.add(d);
+      for (const d of automated) domains.add(normalizeHostname(d));
     }
   }
 
   return domains;
+}
+
+export function normalizeHostname(hostname: string): string {
+  return hostname.trim().toLowerCase().replace(/\.+$/, "");
 }
 
 export function parseSitesFromConfig(
@@ -116,7 +120,9 @@ export function parseSitesFromConfig(
         : undefined;
       const routeId = route["@id"] as string | undefined;
 
-      for (const domain of hosts) {
+      for (const rawDomain of hosts) {
+        const domain = normalizeHostname(rawDomain);
+        if (!domain) continue;
         if (seen.has(domain)) continue;
         seen.add(domain);
         sites.push({
@@ -156,6 +162,7 @@ export async function importSitesFromConfig(
     if (existing) {
       skipped++;
       const updated = await siteRepo.update(existing.id, {
+        routeId: p.routeId,
         routeConfig: p.routeConfig,
       });
       sites.push(updated ?? existing);
@@ -166,8 +173,7 @@ export async function importSitesFromConfig(
       serverId: server.id,
       domain: p.domain,
       upstream: p.upstream,
-      // Newly imported Caddyfile routes remain Caddyfile-owned metadata.
-      routeId: undefined,
+      routeId: p.routeId,
       caddyServerName: p.caddyServerName,
       tlsEnabled: p.tlsEnabled,
       routeConfig: p.routeConfig,
@@ -480,6 +486,7 @@ export async function discoverAndImport(apiEndpoint: string): Promise<{
     if (existing) {
       skipped++;
       const updated = await siteRepo.update(existing.id, {
+        routeId: p.routeId,
         routeConfig: p.routeConfig,
       });
       sites.push(updated ?? existing);
@@ -489,8 +496,7 @@ export async function discoverAndImport(apiEndpoint: string): Promise<{
       serverId: server.id,
       domain: p.domain,
       upstream: p.upstream,
-      // Newly discovered Caddyfile routes remain Caddyfile-owned metadata.
-      routeId: undefined,
+      routeId: p.routeId,
       caddyServerName: p.caddyServerName,
       tlsEnabled: p.tlsEnabled,
       routeConfig: p.routeConfig,

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DataTable, Modal, PageHeader, StatusBadge } from "@caddy-manager/ui";
+import SiteFilters from "./components/SiteFilters";
 
 describe("shared UI primitives", () => {
   it("renders a semantic status pill", () => {
@@ -67,5 +68,35 @@ describe("shared UI primitives", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next page" }));
     expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("provides searchable route ID suggestions", () => {
+    const onChange = vi.fn();
+    render(
+      <SiteFilters
+        domains={[]}
+        routeIds={["fee-syncer-dev", "fee-syncer-prod"]}
+        servers={[]}
+        serverBlocks={[]}
+        statuses={[]}
+        values={{
+          domain: "",
+          serverId: "",
+          serverBlock: "",
+          status: "",
+          routeId: "",
+        }}
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole("combobox", {
+      name: "Filter by route ID",
+    });
+    expect(
+      document.querySelector('datalist option[value="fee-syncer-dev"]'),
+    ).toBeTruthy();
+    fireEvent.change(input, { target: { value: "fee-syncer-dev" } });
+    expect(onChange).toHaveBeenCalledWith("routeId", "fee-syncer-dev");
   });
 });

@@ -89,6 +89,7 @@ export default function Sites() {
   const [serverIdFilter, setServerIdFilter] = useState("");
   const [serverFilter, setServerFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [routeIdFilter, setRouteIdFilter] = useState("");
   const [sitePage, setSitePage] = useState(0);
   const siteView = searchParams.get("view") === "caddy" ? "caddy" : "api";
   const showCaddyfile = searchParams.get("showCaddyfile") === "true";
@@ -205,6 +206,13 @@ export default function Sites() {
     servers.map((server) => [server.id, server.name]),
   );
   const domainOptions = [...new Set(viewRows.map((row) => row.domain))].sort();
+  const routeIdOptions = [
+    ...new Set(
+      viewRows
+        .map((row) => row.routeId)
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ].sort();
   const serverIdOptions = [
     ...new Set(viewRows.map((row) => row.serverId)),
   ].sort((a, b) =>
@@ -223,7 +231,9 @@ export default function Sites() {
       (!domainFilter || row.domain === domainFilter) &&
       (!serverIdFilter || row.serverId === serverIdFilter) &&
       (!serverFilter || row.caddyServerName === serverFilter) &&
-      (!statusFilter || row.status === statusFilter)
+      (!statusFilter || row.status === statusFilter) &&
+      (!routeIdFilter ||
+        row.routeId?.toLowerCase().includes(routeIdFilter.toLowerCase()))
     );
   });
   const totalPages = Math.max(
@@ -234,6 +244,9 @@ export default function Sites() {
   const pageRows = filteredRows.slice(
     currentPage * SITE_PAGE_SIZE,
     (currentPage + 1) * SITE_PAGE_SIZE,
+  );
+  const groupedPageRows = [...pageRows].sort((a, b) =>
+    (a.routeId ?? a.id).localeCompare(b.routeId ?? b.id),
   );
   const activeCount = rows.filter((row) => row.status === "active").length;
   const warningCount = rows.filter((row) => row.status === "warning").length;
@@ -373,6 +386,7 @@ export default function Sites() {
         <div className="page-eyebrow mb-0">Managed routes</div>
         <SiteFilters
           domains={domainOptions}
+          routeIds={routeIdOptions}
           servers={serverIdOptions.map((serverId) => ({
             value: serverId,
             label: serverNames.get(serverId) ?? serverId,
@@ -384,12 +398,14 @@ export default function Sites() {
             serverId: serverIdFilter,
             serverBlock: serverFilter,
             status: statusFilter,
+            routeId: routeIdFilter,
           }}
           onChange={(filter, value) => {
             if (filter === "domain") setDomainFilter(value);
             if (filter === "serverId") setServerIdFilter(value);
             if (filter === "serverBlock") setServerFilter(value);
             if (filter === "status") setStatusFilter(value);
+            if (filter === "routeId") setRouteIdFilter(value);
             setSitePage(0);
           }}
         />
@@ -469,8 +485,9 @@ export default function Sites() {
         <div className="sites-table-scroll">
           <DataTable
             columns={[serverColumn, ...columns, actionColumn]}
-            rows={pageRows}
+            rows={groupedPageRows}
             getRowId={(r) => r.id}
+            groupBy={(row) => row.routeId ?? row.id}
             totalCount={filteredRows.length}
             page={currentPage}
             pageSize={SITE_PAGE_SIZE}

@@ -1,5 +1,15 @@
 @use "tokens" as *;
 
+.table-group-row th {
+  padding-top: 0.65rem;
+  padding-bottom: 0.35rem;
+  color: var(--muted);
+  background: var(--paper);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .login-shell {
   display: flex;
   min-height: 100vh;
