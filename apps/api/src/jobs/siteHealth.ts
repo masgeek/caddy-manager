@@ -137,10 +137,14 @@ async function pingSite(
   }
 }
 
+export function isHealthCheckableSite(site: { routeId?: string }): boolean {
+  return Boolean(site.routeId);
+}
+
 export async function checkAllSites(): Promise<void> {
   const started = Date.now();
-  const allSites = await siteRepo.findAll();
-  console.log(`[site-health] checking ${allSites.length} sites`);
+  const allSites = (await siteRepo.findAll()).filter(isHealthCheckableSite);
+  console.log(`[site-health] checking ${allSites.length} API-managed sites`);
   for (const site of allSites) {
     if (site.status === "not_provisioned") continue;
     const checkedAt = new Date();

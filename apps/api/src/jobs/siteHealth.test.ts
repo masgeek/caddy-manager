@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { classifyHttpStatus, configContainsSite } from "./siteHealth";
+import {
+  classifyHttpStatus,
+  configContainsSite,
+  isHealthCheckableSite,
+} from "./siteHealth";
 
 describe("classifyHttpStatus", () => {
   it("treats 4xx responses as warnings", () => {
@@ -88,5 +92,15 @@ describe("configContainsSite", () => {
     expect(
       configContainsSite(config, { domain: "example.com" }, "public"),
     ).toBe(true);
+  });
+});
+
+describe("isHealthCheckableSite", () => {
+  it("includes API-managed sites with a route ID", () => {
+    expect(isHealthCheckableSite({ routeId: "dynamic-route" })).toBe(true);
+  });
+
+  it("excludes Caddyfile-managed sites without a route ID", () => {
+    expect(isHealthCheckableSite({ routeId: undefined })).toBe(false);
   });
 });
