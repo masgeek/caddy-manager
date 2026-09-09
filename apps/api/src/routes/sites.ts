@@ -196,8 +196,10 @@ export async function registerSiteRoutes(app: FastifyInstance) {
       },
       preHandler: app.authorize(["admin", "operator"]),
     },
-    async () => {
-      await checkAllSites();
+    async (request) => {
+      void checkAllSites().catch((error) => {
+        request.log.error({ err: error }, "Manual site health check failed");
+      });
       return { success: true };
     },
   );
