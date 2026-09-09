@@ -48,11 +48,11 @@ passes.
 
 Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
 
-When enabled, the API runs one site health-check pass during startup before
-starting the scheduled job. It then follows `SITE_CHECK_CRON` for subsequent
-runs. Set `SITE_HEALTH_ENABLED=false` to disable both the startup pass and the
-background cron job for site health checks, inventory housekeeping, and
-missing-route reconciliation. Manual API actions and commands such as
+When enabled, the API runs one complete site-health cycle during startup,
+including inventory housekeeping, API-managed site health checks, and route
+reconciliation. It then follows `SITE_CHECK_CRON` for subsequent cycles. Set
+`SITE_HEALTH_ENABLED=false` to disable both the startup cycle and the
+background cron job. Manual API actions and commands such as
 `pnpm caddy:reconcile` remain available.
 
 The API writes structured logs to `LOG_FILE`, which defaults to
