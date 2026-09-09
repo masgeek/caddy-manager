@@ -48,9 +48,12 @@ passes.
 
 Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
 
-Set `SITE_HEALTH_ENABLED=false` to disable the API background cron job for site
-health checks, inventory housekeeping, and missing-route reconciliation. Manual
-API actions and commands such as `pnpm caddy:reconcile` remain available.
+When enabled, the API runs one site health-check pass during startup before
+starting the scheduled job. It then follows `SITE_CHECK_CRON` for subsequent
+runs. Set `SITE_HEALTH_ENABLED=false` to disable both the startup pass and the
+background cron job for site health checks, inventory housekeeping, and
+missing-route reconciliation. Manual API actions and commands such as
+`pnpm caddy:reconcile` remain available.
 
 The API writes structured logs to `LOG_FILE`, which defaults to
 `logs/caddy-manager.log`, and rotates that file daily. Rotated files are
