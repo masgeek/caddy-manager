@@ -184,7 +184,7 @@ export default function Sites() {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       setOperation({
         title: "Health check complete",
-        message: "Health was checked for all sites.",
+        message: "Health was checked for all API-managed sites.",
         status: "success",
       });
     },
@@ -427,10 +427,10 @@ export default function Sites() {
               healthCheckMutation.mutate();
             }}
             disabled={healthCheckMutation.isPending}
-            title="Check health for all sites"
+            title="Check health for all API-managed sites"
           >
             <i className="bi bi-heart-pulse me-1"></i>
-            {healthCheckMutation.isPending ? "Checking..." : "Check Health"}
+            {healthCheckMutation.isPending ? "Checking..." : "Check API Health"}
           </button>
           <button
             className="btn btn-outline-success"
