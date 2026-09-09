@@ -1,12 +1,13 @@
-import React from 'react';
-import type { Column } from './types';
-import { Pagination } from './Pagination';
+import React from "react";
+import type { Column } from "./types";
+import { Pagination } from "./Pagination";
 
 interface DataTableProps<T> {
   columns: Column<T>[];
   rows: T[];
   loading?: boolean;
   getRowId: (row: T) => string;
+  groupBy?: (row: T) => string;
   page?: number;
   pageSize?: number;
   totalCount?: number;
@@ -22,7 +23,9 @@ export function DataTable<T>({
   pageSize = 20,
   totalCount,
   onPageChange,
+  groupBy,
 }: DataTableProps<T>) {
+  let previousGroup: string | undefined;
   return (
     <div>
       <div className="table-responsive">
@@ -39,28 +42,49 @@ export function DataTable<T>({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="text-center text-muted py-3">
+                <td
+                  colSpan={columns.length}
+                  className="text-center text-muted py-3"
+                >
                   No data
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
-                <tr key={getRowId(row)}>
-                  {columns.map((col) => (
-                    <td key={String(col.field)}>
-                      {col.render
-                        ? col.render(row[col.field as keyof T], row)
-                        : String(row[col.field as keyof T] ?? '')}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.flatMap((row) => {
+                const group = groupBy?.(row);
+                const groupRow =
+                  group && group !== previousGroup ? (
+                    <tr className="table-group-row" key={`group-${group}`}>
+                      <th colSpan={columns.length} scope="rowgroup">
+                        {group}
+                      </th>
+                    </tr>
+                  ) : null;
+                previousGroup = group;
+                return [
+                  groupRow,
+                  <tr key={getRowId(row)}>
+                    {columns.map((col) => (
+                      <td key={String(col.field)}>
+                        {col.render
+                          ? col.render(row[col.field as keyof T], row)
+                          : String(row[col.field as keyof T] ?? "")}
+                      </td>
+                    ))}
+                  </tr>,
+                ].filter(Boolean);
+              })
             )}
           </tbody>
         </table>
       </div>
       {totalCount !== undefined && onPageChange && (
-        <Pagination page={page} pageSize={pageSize} totalCount={totalCount} onPageChange={onPageChange} />
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={onPageChange}
+        />
       )}
     </div>
   );

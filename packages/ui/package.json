@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@caddy-manager/shared-types": "workspace:*",
-
     "bootstrap": "5",
     "bootstrap-icons": "^1.13.1",
     "react": "^19.1.0",

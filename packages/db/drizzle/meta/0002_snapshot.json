@@ -279,12 +279,8 @@
           "name": "sites_server_id_servers_id_fk",
           "tableFrom": "sites",
           "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }

@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import type { FastifyInstance } from 'fastify';
-import { configReloadResponseSchema, toJsonSchema } from '../lib/schemas';
-import { CaddyProvider } from '../providers/caddy';
-import * as serverService from '../services/server';
-import * as siteService from '../services/site';
-import * as configService from '../services/config';
-import { recordAuditEvent } from '../services/audit';
-import { NotFoundError } from '../lib/errors';
+import { z } from "zod";
+import type { FastifyInstance } from "fastify";
+import { configReloadResponseSchema, toJsonSchema } from "../lib/schemas";
+import { CaddyProvider } from "../providers/caddy";
+import * as serverService from "../services/server";
+import * as siteService from "../services/site";
+import * as configService from "../services/config";
+import { recordAuditEvent } from "../services/audit";
+import { NotFoundError } from "../lib/errors";
 
 const serverIdParam = z.object({ serverId: z.string().min(1) });
 
@@ -14,16 +14,16 @@ const reloadBody = z.object({ serverId: z.string().min(1) });
 
 export async function registerConfigRoutes(app: FastifyInstance) {
   app.get(
-    '/config',
+    "/config",
     {
       schema: {
-        tags: ['Config'],
-        summary: 'Get active Caddy configuration',
+        tags: ["Config"],
+        summary: "Get active Caddy configuration",
         querystring: toJsonSchema(serverIdParam),
         response: {
           200: {
-            type: 'object',
-            description: 'Raw Caddy JSON configuration',
+            type: "object",
+            description: "Raw Caddy JSON configuration",
           },
         },
       },
@@ -37,18 +37,18 @@ export async function registerConfigRoutes(app: FastifyInstance) {
   );
 
   app.post(
-    '/config/reload',
+    "/config/reload",
     {
       schema: {
-        tags: ['Config'],
-        summary: 'Build and reload Caddy configuration',
+        tags: ["Config"],
+        summary: "Build and reload Caddy configuration",
         body: {
           ...toJsonSchema(reloadBody),
-          example: { serverId: '3a5c7e8f-1b2d-4f6a-9c8d-7e6f5a4b3c2d' },
+          example: { serverId: "3a5c7e8f-1b2d-4f6a-9c8d-7e6f5a4b3c2d" },
         },
         response: { 200: configReloadResponseSchema },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async (request) => {
       const { serverId } = reloadBody.parse(request.body);
@@ -56,7 +56,7 @@ export async function registerConfigRoutes(app: FastifyInstance) {
       const sites = await siteService.getSitesByServer(serverId);
 
       if (sites.length === 0) {
-        throw new NotFoundError('Sites', 'none found for this server');
+        throw new NotFoundError("Sites", "none found for this server");
       }
 
       const provider = new CaddyProvider({ apiEndpoint: server.apiEndpoint });
@@ -64,27 +64,31 @@ export async function registerConfigRoutes(app: FastifyInstance) {
 
       await recordAuditEvent({
         userId: request.user.sub,
-        action: 'reload',
-        entity: 'config',
+        action: "reload",
+        entity: "config",
         entityId: serverId,
         details: `Reloaded configuration for server ${server.name} with ${sites.length} sites`,
       });
 
-      return { success: true, message: 'Configuration reloaded', siteCount: sites.length };
+      return {
+        success: true,
+        message: "Configuration reloaded",
+        siteCount: sites.length,
+      };
     },
   );
 
   app.get(
-    '/config/generated',
+    "/config/generated",
     {
       schema: {
-        tags: ['Config'],
-        summary: 'Preview generated configuration without deploying',
+        tags: ["Config"],
+        summary: "Preview generated configuration without deploying",
         querystring: toJsonSchema(serverIdParam),
         response: {
           200: {
-            type: 'object',
-            description: 'Generated Caddy JSON configuration',
+            type: "object",
+            description: "Generated Caddy JSON configuration",
           },
         },
       },

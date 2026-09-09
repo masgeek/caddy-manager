@@ -1,4 +1,14 @@
-@use 'tokens' as *;
+@use "tokens" as *;
+
+.table-group-row th {
+  padding-top: 0.65rem;
+  padding-bottom: 0.35rem;
+  color: var(--muted);
+  background: var(--paper);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 .login-shell {
   display: flex;
@@ -20,7 +30,9 @@
 .login-grid {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient($mint-grid 1px, transparent 1px), linear-gradient(90deg, $mint-grid 1px, transparent 1px);
+  background-image:
+    linear-gradient($mint-grid 1px, transparent 1px),
+    linear-gradient(90deg, $mint-grid 1px, transparent 1px);
   background-size: 42px 42px;
   mask-image: linear-gradient(135deg, black, transparent 80%);
 }
@@ -31,8 +43,17 @@
   border-radius: 50%;
 }
 
-.login-orbit-one { width: 560px; height: 560px; transform: rotate(-24deg) scaleY(0.44); }
-.login-orbit-two { width: 780px; height: 780px; transform: rotate(28deg) scaleY(0.42); border-color: rgba($amber, 0.15); }
+.login-orbit-one {
+  width: 560px;
+  height: 560px;
+  transform: rotate(-24deg) scaleY(0.44);
+}
+.login-orbit-two {
+  width: 780px;
+  height: 780px;
+  transform: rotate(28deg) scaleY(0.42);
+  border-color: rgba($amber, 0.15);
+}
 
 .login-panel {
   display: flex;
@@ -54,7 +75,7 @@
 
 .login-title {
   margin: 0;
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   color: var(--ink);
   font-size: clamp(2.2rem, 5vw, 3.6rem);
   font-weight: 700;
@@ -79,8 +100,13 @@
 }
 
 @media (max-width: 767.98px) {
-  .login-atmosphere { display: none; }
-  .login-panel { width: 100%; padding: 24px; }
+  .login-atmosphere {
+    display: none;
+  }
+  .login-panel {
+    width: 100%;
+    padding: 24px;
+  }
 }
 
 .app-sidebar {
@@ -102,7 +128,7 @@
   gap: 11px;
   padding: 4px 12px 30px;
   color: $white-strong;
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-size: 1.08rem;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -143,7 +169,10 @@
   color: $text-nav;
   font-size: 0.88rem;
   text-align: left;
-  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .app-nav-link:hover {
@@ -199,7 +228,7 @@
 .page-heading h3,
 .page-heading h4 {
   margin: 0;
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-weight: 700;
   letter-spacing: -0.055em;
 }
@@ -230,7 +259,7 @@
   border-radius: 50%;
   background: var(--mint);
   box-shadow: 0 0 0 4px $mint-shadow;
-  content: '';
+  content: "";
 }
 
 .dashboard-hero {
@@ -254,8 +283,10 @@
   height: 260px;
   border: 1px solid rgba($mint, 0.18);
   border-radius: 50%;
-  box-shadow: 0 0 0 30px rgba($mint, 0.04), 0 0 0 60px rgba($mint, 0.025);
-  content: '';
+  box-shadow:
+    0 0 0 30px rgba($mint, 0.04),
+    0 0 0 60px rgba($mint, 0.025);
+  content: "";
 }
 
 .dashboard-hero-kicker-row {
@@ -297,7 +328,7 @@
   align-items: baseline;
   gap: 12px;
   margin-top: 34px;
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-size: clamp(3.8rem, 8vw, 6.2rem);
   font-weight: 700;
   letter-spacing: -0.1em;
@@ -361,7 +392,7 @@
 }
 
 .dashboard-hero-stats strong {
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-size: 1.15rem;
 }
 
@@ -377,7 +408,7 @@
 
 .dashboard-health-percent {
   color: $mint-bright;
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.05em;
@@ -386,21 +417,37 @@
 
 .dashboard-health-percent small {
   color: $text-nav;
-  font-family: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0;
 }
 
-.dashboard-health-percent.dashboard-health-neutral { color: $text-dark-muted; }
-.dashboard-health-percent.dashboard-health-warning { color: $amber; }
-.dashboard-health-percent.dashboard-health-good { color: $mint-dark; }
-.dashboard-health-percent.dashboard-health-critical { color: $coral; }
+.dashboard-health-percent.dashboard-health-neutral {
+  color: $text-dark-muted;
+}
+.dashboard-health-percent.dashboard-health-warning {
+  color: $amber;
+}
+.dashboard-health-percent.dashboard-health-good {
+  color: $mint-dark;
+}
+.dashboard-health-percent.dashboard-health-critical {
+  color: $coral;
+}
 
-.dashboard-progress.dashboard-health-neutral span { background: $text-dark-muted; }
-.dashboard-progress.dashboard-health-warning span { background: $amber; }
-.dashboard-progress.dashboard-health-good span { background: $mint-dark; }
-.dashboard-progress.dashboard-health-critical span { background: $coral; }
+.dashboard-progress.dashboard-health-neutral span {
+  background: $text-dark-muted;
+}
+.dashboard-progress.dashboard-health-warning span {
+  background: $amber;
+}
+.dashboard-progress.dashboard-health-good span {
+  background: $mint-dark;
+}
+.dashboard-progress.dashboard-health-critical span {
+  background: $coral;
+}
 
 .dashboard-metric-stack {
   display: grid;
@@ -421,7 +468,7 @@
 }
 
 .metric-panel strong {
-  font-family: 'Space Grotesk', 'Avenir Next', sans-serif;
+  font-family: "Space Grotesk", "Avenir Next", sans-serif;
   font-size: 2.4rem;
   letter-spacing: -0.08em;
 }
@@ -458,7 +505,10 @@
   background: var(--panel);
   color: var(--ink);
   text-align: left;
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .attention-item:hover,
@@ -475,8 +525,14 @@
   border-radius: 50%;
 }
 
-.status-dot-success { background: var(--mint); box-shadow: 0 0 0 4px $mint-shadow-soft; }
-.status-dot-danger { background: var(--coral); box-shadow: 0 0 0 4px $coral-shadow; }
+.status-dot-success {
+  background: var(--mint);
+  box-shadow: 0 0 0 4px $mint-shadow-soft;
+}
+.status-dot-danger {
+  background: var(--coral);
+  box-shadow: 0 0 0 4px $coral-shadow;
+}
 
 .attention-main,
 .server-pulse-main {
@@ -563,13 +619,22 @@
   text-transform: uppercase;
 }
 
-.log-level-info { background: $surface-mint; color: $mint-dark; }
-.log-level-warn { background: $surface-amber; color: $text-amber; }
-.log-level-error { background: $surface-danger; color: $text-danger; }
+.log-level-info {
+  background: $surface-mint;
+  color: $mint-dark;
+}
+.log-level-warn {
+  background: $surface-amber;
+  color: $text-amber;
+}
+.log-level-error {
+  background: $surface-danger;
+  color: $text-danger;
+}
 
 .log-message {
   color: var(--ink);
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.78rem;
 }
 
@@ -584,14 +649,35 @@
   text-transform: uppercase;
 }
 
-.audit-action.create { background: $surface-mint; color: $mint-dark; }
-.audit-action.update { background: $surface-blue; color: $text-blue; }
-.audit-action.delete { background: $surface-danger; color: $text-danger; }
-.audit-action.reload { background: $surface-amber; color: $text-amber; }
+.audit-action.create {
+  background: $surface-mint;
+  color: $mint-dark;
+}
+.audit-action.update {
+  background: $surface-blue;
+  color: $text-blue;
+}
+.audit-action.delete {
+  background: $surface-danger;
+  color: $text-danger;
+}
+.audit-action.reload {
+  background: $surface-amber;
+  color: $text-amber;
+}
 .audit-action.login,
-.audit-action.logout { background: $surface-neutral; color: $text-neutral; }
-.audit-result.success { background: $surface-mint; color: $mint-dark; }
-.audit-result.failure { background: $surface-danger; color: $text-danger; }
+.audit-action.logout {
+  background: $surface-neutral;
+  color: $text-neutral;
+}
+.audit-result.success {
+  background: $surface-mint;
+  color: $mint-dark;
+}
+.audit-result.failure {
+  background: $surface-danger;
+  color: $text-danger;
+}
 
 .audit-details summary {
   cursor: pointer;
@@ -621,7 +707,7 @@
 
 .json-viewer-title {
   color: $text-light;
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   font-size: 0.78rem;
 }
 
@@ -632,7 +718,7 @@
   border-radius: 0 0 var(--radius) var(--radius);
   background: $night;
   color: $text-light-soft;
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
   line-height: 1.6;
 }
 
@@ -684,17 +770,36 @@
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  content: '';
+  content: "";
 }
 
 .status-pill-online,
-.status-pill-active { background: $surface-mint; color: $mint-dark; }
+.status-pill-active {
+  background: $surface-mint;
+  color: $mint-dark;
+}
 .status-pill-offline,
-.status-pill-error { background: $surface-danger; color: $text-danger; }
-.status-pill-degraded { background: $surface-amber; color: $text-amber; }
-.status-pill-warning { background: $surface-amber; color: $text-amber; }
+.status-pill-error {
+  background: $surface-danger;
+  color: $text-danger;
+}
+.status-pill-degraded {
+  background: $surface-amber;
+  color: $text-amber;
+}
+.status-pill-warning {
+  background: $surface-amber;
+  color: $text-amber;
+}
+.status-pill-not_provisioned {
+  background: $surface-amber;
+  color: $text-amber;
+}
 .status-pill-unknown,
-.status-pill-inactive { background: $surface-neutral; color: $text-neutral; }
+.status-pill-inactive {
+  background: $surface-neutral;
+  color: $text-neutral;
+}
 
 .form-control,
 .form-select {
@@ -745,6 +850,43 @@
   min-width: 180px;
   max-width: 180px;
   flex: 0 0 auto;
+}
+
+.sites-filter-controls .site-filter-search {
+  width: 220px;
+  min-width: 220px;
+  flex: 0 0 220px;
+}
+
+.inventory-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.inventory-filter-bar > label {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.inventory-route-filter {
+  width: min(360px, 100%);
+  min-width: 260px;
+}
+
+@media (max-width: 575.98px) {
+  .inventory-filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .inventory-route-filter {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .sites-toolbar > .page-eyebrow {

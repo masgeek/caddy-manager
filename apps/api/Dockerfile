@@ -44,7 +44,7 @@ RUN pnpm install --prod --frozen-lockfile
 # Copy the bundled API output
 COPY --from=builder --chown=caddy:caddy /repo/apps/api/dist apps/api/dist/
 
-RUN mkdir -p apps/api/uploads && chown -R caddy:caddy apps/api
+RUN mkdir -p apps/api/uploads logs && chown -R caddy:caddy apps/api logs
 
 USER caddy
 

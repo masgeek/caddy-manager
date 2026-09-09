@@ -1,5 +1,9 @@
-import type { AuditEvent, AuditAction, AuditEntity } from '@caddy-manager/shared-types';
-import { auditRepo } from '@caddy-manager/db';
+import type {
+  AuditEvent,
+  AuditAction,
+  AuditEntity,
+} from "@caddy-manager/shared-types";
+import { auditRepo } from "@caddy-manager/db";
 
 export async function recordAuditEvent(data: {
   userId?: string;
@@ -7,7 +11,7 @@ export async function recordAuditEvent(data: {
   entity: AuditEntity;
   entityId?: string;
   details?: string;
-  result?: 'success' | 'failure';
+  result?: "success" | "failure";
 }): Promise<AuditEvent> {
   return auditRepo.create({
     userId: data.userId,

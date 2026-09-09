@@ -1,5 +1,5 @@
-import React from 'react';
-import {Modal} from './Modal';
+import React from "react";
+import { Modal } from "./Modal";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -15,8 +15,8 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -27,8 +27,16 @@ export function ConfirmDialog({
       onClose={onCancel}
       footer={
         <>
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>{cancelLabel}</button>
-          <button type="button" className="btn btn-danger" onClick={onConfirm}>{confirmLabel}</button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onCancel}
+          >
+            {cancelLabel}
+          </button>
+          <button type="button" className="btn btn-danger" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
         </>
       }
     >

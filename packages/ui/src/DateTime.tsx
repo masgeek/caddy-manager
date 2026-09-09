@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 type DateValue = string | Date;
 
@@ -8,8 +8,8 @@ function asDate(value: DateValue): Date {
 
 export function formatDateTime(value: DateValue): string {
   return asDate(value).toLocaleString(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
     hour12: false,
   });
 }
@@ -20,8 +20,16 @@ interface FormattedDateTimeProps {
   className?: string;
 }
 
-export function FormattedDateTime({value, fallback = 'Not available', className}: FormattedDateTimeProps) {
+export function FormattedDateTime({
+  value,
+  fallback = "Not available",
+  className,
+}: FormattedDateTimeProps) {
   if (!value) return <span className={className}>{fallback}</span>;
   const date = asDate(value);
-  return <time className={className} dateTime={date.toISOString()}>{formatDateTime(date)}</time>;
+  return (
+    <time className={className} dateTime={date.toISOString()}>
+      {formatDateTime(date)}
+    </time>
+  );
 }

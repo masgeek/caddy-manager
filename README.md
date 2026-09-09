@@ -35,18 +35,18 @@ caddy-manager/
 
 ## Tech Stack
 
-| Layer              | Technology                              |
-|--------------------|-----------------------------------------|
-| Frontend           | React + TypeScript + Vite + Bootstrap    |
-| Backend            | Node.js + Fastify + TypeScript          |
-| Database           | PostgreSQL                              |
-| Validation         | Zod                                     |
-| API Docs           | OpenAPI + Swagger                       |
-| Package Manager    | pnpm                                    |
-| Build System       | TurboRepo                               |
-| Styling            | Modular SCSS                            |
-| Testing            | Vitest, React Testing Library            |
-| Containerization   | Docker + Docker Compose                 |
+| Layer            | Technology                            |
+| ---------------- | ------------------------------------- |
+| Frontend         | React + TypeScript + Vite + Bootstrap |
+| Backend          | Node.js + Fastify + TypeScript        |
+| Database         | PostgreSQL                            |
+| Validation       | Zod                                   |
+| API Docs         | OpenAPI + Swagger                     |
+| Package Manager  | pnpm                                  |
+| Build System     | TurboRepo                             |
+| Styling          | Modular SCSS                          |
+| Testing          | Vitest, React Testing Library         |
+| Containerization | Docker + Docker Compose               |
 
 ## MVP Features
 
@@ -61,6 +61,8 @@ caddy-manager/
 - Configuration reload
 - Health monitoring
 - Log viewer with search and filters
+- Desired-state site inventory with provisioning lifecycle controls
+- Stacked non-blocking operation notifications
 - Audit trail
 - JWT-based authentication
 - Docker Compose deployment
@@ -105,15 +107,25 @@ container, attach it to the generated `caddy-manager_internal` network so the
 API can reach it. The API is intentionally not published directly; access it
 through the web container on `WEB_PORT`.
 
-See `docker/` for configuration details.
+See [`docs/DOCKER.md`](docs/DOCKER.md) for Compose and deployment details.
+
+## Logging
+
+The API writes structured logs to a file and rotates the file daily. Configure
+the log verbosity and base path in `.env`:
+
+```env
+LOG_LEVEL=info
+LOG_FILE=logs/caddy-manager.log
+```
+
+`LOG_LEVEL` defaults to `info`. Rotated files are retained for 30 days. In
+Docker deployments, API logs are persisted in the `api_logs` Compose volume.
+See [`docs/DOCKER.md`](docs/DOCKER.md) for operational details.
 
 ## Documentation
 
-- [Plan & Architecture](docs/PLAN.md) — Full project plan and architecture document
-- [PRD](docs/PRD.md) — Product requirements and key decisions
-- [Features](docs/FEATURES.md) — Implemented features and current backlog
-- [Priorities](docs/PRIORITIES.md) — Completed priorities and next work
-- [UI Design Plan](docs/UI_DESIGN_PLAN.md) — Visual direction and interaction rules
-- [UI Component Guide](docs/UI_COMPONENT_GUIDE.md) — Shared UI and layout guidance
-- [Implementation Roadmap](docs/IMPLEMENTATION_ROADMAP.md) — Route builder and platform improvement plan
 - [Docker Deployment](docs/DOCKER.md) — Compose services, configuration, and operations
+- [Site Inventory](docs/INVENTORY.md) — Lifecycle, provisioning, and deletion rules
+- [Caddy systemd Setup](docs/CADDY_SYSTEMD.md) — Persist API-managed JSON configuration across restarts
+- [Homarr Dashboard](docker/README.md) — Optional Homarr integration and proxy setup

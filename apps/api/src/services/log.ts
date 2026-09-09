@@ -1,4 +1,4 @@
-import { CaddyProvider } from '../providers/caddy';
+import { CaddyProvider } from "../providers/caddy";
 
 interface LogEntry {
   timestamp: string;
@@ -26,7 +26,7 @@ export async function getLogs(params?: {
   if (params?.search) {
     const q = params.search.toLowerCase();
     entries = entries.filter(
-      e =>
+      (e) =>
         e.message.toLowerCase().includes(q) ||
         e.level.toLowerCase().includes(q) ||
         (e.source && e.source.toLowerCase().includes(q)),
@@ -40,12 +40,12 @@ export async function fetchCaddyLogs(provider: CaddyProvider): Promise<void> {
   try {
     const rawLogs = await provider.getLogs();
     for (const log of rawLogs) {
-      if (typeof log === 'string') {
+      if (typeof log === "string") {
         addLogEntry({
           timestamp: new Date().toISOString(),
-          level: 'info',
+          level: "info",
           message: log,
-          source: 'caddy',
+          source: "caddy",
         });
       }
     }

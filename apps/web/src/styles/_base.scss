@@ -1,4 +1,4 @@
-@use 'tokens' as *;
+@use "tokens" as *;
 
 * {
   box-sizing: border-box;
@@ -15,7 +15,7 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: 'IBM Plex Sans', 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
   font-size: 0.94rem;
   letter-spacing: -0.01em;
 }

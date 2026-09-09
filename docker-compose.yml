@@ -10,7 +10,8 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-caddy} -d ${DB_NAME:-caddy}" ]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${DB_USER:-caddy} -d ${DB_NAME:-caddy}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -19,9 +20,8 @@ services:
     networks:
       - web
       - internal
-
   migrate:
-    image: masgeek/caddy-manager-migrate:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-migrate:${TAG:-latest}
     container_name: migrate
     build:
       context: .
@@ -48,7 +48,7 @@ services:
       - internal
 
   api:
-    image: masgeek/caddy-manager-api:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-api:${TAG:-latest}
     container_name: api
     build:
       context: .
@@ -60,6 +60,8 @@ services:
     environment:
       PORT: 3500
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FILE: ${LOG_FILE:-logs/caddy-manager.log}
+      SITE_HEALTH_ENABLED: ${SITE_HEALTH_ENABLED:-true}
       SITE_CHECK_CRON: ${SITE_CHECK_CRON:-*/5 * * * *}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CADDY_ADMIN_TOKEN: ${CADDY_ADMIN_TOKEN:-}
@@ -75,7 +77,11 @@ services:
       SEED_PASSWORD: ${SEED_PASSWORD:?SEED_PASSWORD is required}
       SEED_ROLE: ${SEED_ROLE:-admin}
     healthcheck:
-      test: [ "CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3500/api/health').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\"" ]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3500/api/health'').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,9 +94,11 @@ services:
     networks:
       - web
       - internal
+    volumes:
+      - api_logs:/repo/logs
 
   web:
-    image: masgeek/caddy-manager-web:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/masgeek}/caddy-manager-web:${TAG:-latest}
     container_name: web
     build:
       context: .
@@ -105,7 +113,7 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1" ]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -121,3 +129,4 @@ networks:
 
 volumes:
   db_data:
+  api_logs:

@@ -36,6 +36,41 @@
       "when": 1785932491504,
       "tag": "0004_allow_sites_without_upstream",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788368006172,
+      "tag": "0006_uneven_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788392552523,
+      "tag": "0007_preserve_site_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788393221225,
+      "tag": "0008_detach_inventory_on_server_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788414345396,
+      "tag": "0009_add_site_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788415000000,
+      "tag": "0010_backfill_site_groups",
+      "breakpoints": true
     }
   ]
 }

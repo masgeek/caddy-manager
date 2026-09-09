@@ -1,17 +1,17 @@
-import tsParser from '@typescript-eslint/parser';
+import tsParser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: ['**/dist/', '**/node_modules/', '**/.turbo/'],
+    ignores: ["**/dist/", "**/node_modules/", "**/.turbo/"],
   },
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsParser,
     },
     rules: {
-      'no-unused-vars': 'warn',
-      'no-console': 'off',
+      "no-unused-vars": "warn",
+      "no-console": "off",
     },
   },
 ];

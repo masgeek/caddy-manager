@@ -1,4 +1,5 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import {
   createSiteSchema,
   updateSiteSchema,
@@ -7,19 +8,27 @@ import {
   siteListSchema,
   successResponseSchema,
   toJsonSchema,
-} from '../lib/schemas';
-import * as siteService from '../services/site';
-import { checkAllSites, reconcileAllSites } from '../jobs/siteHealth.js';
-import { recordAuditEvent } from '../services/audit';
+} from "../lib/schemas";
+import * as siteService from "../services/site";
+import * as inventoryService from "../services/inventory";
+import { checkAllSites, reconcileAllSites } from "../jobs/siteHealth.js";
+import { recordAuditEvent } from "../services/audit";
+
+const dynamicCreateSiteSchema = createSiteSchema.extend({
+  routeId: z.string().min(1).max(255),
+});
 
 export async function registerSiteRoutes(app: FastifyInstance) {
   app.get(
-    '/sites',
+    "/sites",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'List all sites',
-        querystring: { type: 'object', properties: { serverId: { type: 'string' } } },
+        tags: ["Sites"],
+        summary: "List all sites",
+        querystring: {
+          type: "object",
+          properties: { serverId: { type: "string" } },
+        },
         response: { 200: siteListSchema },
       },
     },
@@ -30,11 +39,11 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.get(
-    '/sites/:id',
+    "/sites/:id",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Get site by ID',
+        tags: ["Sites"],
+        summary: "Get site by ID",
         params: toJsonSchema(siteParamsSchema),
         response: { 200: siteObjectSchema },
       },
@@ -46,34 +55,38 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.post(
-    '/sites',
+    "/sites",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Create a site',
+        tags: ["Sites"],
+        summary: "Create a site",
         body: {
-          ...toJsonSchema(createSiteSchema),
+          ...toJsonSchema(dynamicCreateSiteSchema),
           example: {
-            serverId: '3a5c7e8f-1b2d-4f6a-9c8d-7e6f5a4b3c2d',
-            domain: 'example.com',
-            upstream: 'http://localhost:3000',
+            serverId: "3a5c7e8f-1b2d-4f6a-9c8d-7e6f5a4b3c2d",
+            domain: "example.com",
+            upstream: "http://localhost:3000",
             tlsEnabled: true,
-            routeId: 'route-example',
-            healthEndpoint: '/health',
+            routeId: "route-example",
+            healthEndpoint: "/health",
           },
         },
-        response: { 201: siteObjectSchema },
+        response: { 201: { type: "object" } },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async (request, reply) => {
-      const data = createSiteSchema.parse(request.body);
-      const site = await siteService.createSite(data);
+      const data = dynamicCreateSiteSchema.parse(request.body);
+      const site = await inventoryService.createInventory({
+        ...data,
+        state: "draft",
+        managementType: "dynamic",
+      });
 
       await recordAuditEvent({
         userId: request.user.sub,
-        action: 'create',
-        entity: 'site',
+        action: "create",
+        entity: "site",
         entityId: site.id,
         details: `Created site ${site.domain} -> ${site.upstream}`,
       });
@@ -83,23 +96,23 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.put(
-    '/sites/:id',
+    "/sites/:id",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Update a site',
+        tags: ["Sites"],
+        summary: "Update a site",
         params: toJsonSchema(siteParamsSchema),
         body: {
           ...toJsonSchema(updateSiteSchema),
           example: {
-            domain: 'example.com',
-            upstream: 'http://localhost:8080',
+            domain: "example.com",
+            upstream: "http://localhost:8080",
             tlsEnabled: false,
           },
         },
         response: { 200: siteObjectSchema },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async (request) => {
       const { id } = request.params as { id: string };
@@ -108,8 +121,8 @@ export async function registerSiteRoutes(app: FastifyInstance) {
 
       await recordAuditEvent({
         userId: request.user.sub,
-        action: 'update',
-        entity: 'site',
+        action: "update",
+        entity: "site",
         entityId: site.id,
         details: `Updated site ${site.domain}`,
       });
@@ -119,15 +132,15 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.delete(
-    '/sites/:id',
+    "/sites/:id",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Delete a site',
+        tags: ["Sites"],
+        summary: "Delete a site",
         params: toJsonSchema(siteParamsSchema),
-        response: { 204: { type: 'null' } },
+        response: { 204: { type: "null" } },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -136,8 +149,8 @@ export async function registerSiteRoutes(app: FastifyInstance) {
 
       await recordAuditEvent({
         userId: request.user.sub,
-        action: 'delete',
-        entity: 'site',
+        action: "delete",
+        entity: "site",
         entityId: id,
         details: `Deleted site ${site.domain}`,
       });
@@ -147,15 +160,15 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.post(
-    '/sites/:id/sync',
+    "/sites/:id/sync",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Push site to Caddy config',
+        tags: ["Sites"],
+        summary: "Push site to Caddy config",
         params: toJsonSchema(siteParamsSchema),
         response: { 200: siteObjectSchema },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async (request) => {
       const { id } = request.params as { id: string };
@@ -163,8 +176,8 @@ export async function registerSiteRoutes(app: FastifyInstance) {
 
       await recordAuditEvent({
         userId: request.user.sub,
-        action: 'update',
-        entity: 'site',
+        action: "update",
+        entity: "site",
         entityId: id,
         details: `Synced site ${site.domain} to Caddy config`,
       });
@@ -174,14 +187,14 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.post(
-    '/sites/health-check',
+    "/sites/health-check",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Manually trigger site health check',
+        tags: ["Sites"],
+        summary: "Manually trigger site health check",
         response: { 200: successResponseSchema },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async () => {
       await checkAllSites();
@@ -190,14 +203,14 @@ export async function registerSiteRoutes(app: FastifyInstance) {
   );
 
   app.post(
-    '/sites/reconcile',
+    "/sites/reconcile",
     {
       schema: {
-        tags: ['Sites'],
-        summary: 'Recreate missing site routes',
+        tags: ["Sites"],
+        summary: "Recreate missing site routes",
         response: { 200: successResponseSchema },
       },
-      preHandler: app.authorize(['admin', 'operator']),
+      preHandler: app.authorize(["admin", "operator"]),
     },
     async () => {
       await reconcileAllSites();

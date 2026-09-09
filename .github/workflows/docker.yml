@@ -1,35 +1,38 @@
 name: Docker
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
-  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, develop]
 
 concurrency:
   group: docker-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Build ${{ matrix.name }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: api
-            image: masgeek/caddy-manager-api
+            image: ghcr.io/${{ github.repository_owner }}/caddy-manager-api
             dockerfile: apps/api/Dockerfile
           - name: web
-            image: masgeek/caddy-manager-web
+            image: ghcr.io/${{ github.repository_owner }}/caddy-manager-web
             dockerfile: apps/web/Dockerfile
           - name: migrate
-            image: masgeek/caddy-manager-migrate
+            image: ghcr.io/${{ github.repository_owner }}/caddy-manager-migrate
             dockerfile: apps/api/Dockerfile.migrations
     uses: ./.github/workflows/docker-build-job.yml
     with:
       image_name: ${{ matrix.image }}
       dockerfile: ${{ matrix.dockerfile }}
-    secrets:
-      docker_username: ${{ secrets.DOCKERHUB_USERNAME }}
-      docker_password: ${{ secrets.DOCKERHUB_TOKEN }}
+      ref: ${{ github.event.workflow_run.head_sha }}

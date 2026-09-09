@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node and pnpm
         uses: ./.github/actions/setup-node-pnpm
         with:
-          node-version: '24'
+          node-version: "24"
           pnpm-version: 9.15.4
 
       - name: Typecheck

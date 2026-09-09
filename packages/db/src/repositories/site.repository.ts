@@ -1,14 +1,14 @@
-import { z } from 'zod';
-import { eq, and } from 'drizzle-orm';
-import type { Site } from '@caddy-manager/shared-types';
-import { db } from '../connection';
-import { sites } from '../schema';
+import { z } from "zod";
+import { eq, and, sql } from "drizzle-orm";
+import type { Site } from "@caddy-manager/shared-types";
+import { db } from "../connection";
+import { sites } from "../schema";
 
 export const createSiteSchema = z.object({
   serverId: z.string().uuid(),
   domain: z.string().min(1).max(255),
   upstream: z.string().url().optional(),
-  routeId: z.string().max(255).optional(),
+  routeId: z.string().min(1).max(255).optional(),
   caddyServerName: z.string().max(255).optional(),
   routeConfig: z.record(z.unknown()).optional(),
   tlsEnabled: z.boolean(),
@@ -42,7 +42,7 @@ function toSite(row: typeof sites.$inferSelect): Site {
     routeConfig: row.routeConfig as Record<string, unknown> | undefined,
     tlsEnabled: row.tlsEnabled,
     synced: row.synced,
-    status: row.status as Site['status'],
+    status: row.status as Site["status"],
     statusDetail: row.statusDetail ?? undefined,
     lastCheckedAt: row.lastCheckedAt?.toISOString(),
     healthLatencyMs: row.healthLatencyMs ?? undefined,
@@ -63,22 +63,29 @@ class SiteRepository {
   }
 
   async findById(id: string): Promise<Site | undefined> {
-    const [row] = await db.select().from(sites).where(eq(sites.id, id)).limit(1);
+    const [row] = await db
+      .select()
+      .from(sites)
+      .where(eq(sites.id, id))
+      .limit(1);
     return row ? toSite(row) : undefined;
   }
 
   async create(data: CreateSiteInput): Promise<Site> {
-    const [row] = await db.insert(sites).values({
-      serverId: data.serverId,
-      domain: data.domain,
-      upstream: data.upstream,
-      routeId: data.routeId,
-      caddyServerName: data.caddyServerName,
-      routeConfig: data.routeConfig,
-      tlsEnabled: data.tlsEnabled,
-      healthEndpoint: data.healthEndpoint,
-      healthHeaders: data.healthHeaders,
-    }).returning();
+    const [row] = await db
+      .insert(sites)
+      .values({
+        serverId: data.serverId,
+        domain: data.domain,
+        upstream: data.upstream,
+        routeId: data.routeId,
+        caddyServerName: data.caddyServerName,
+        routeConfig: data.routeConfig,
+        tlsEnabled: data.tlsEnabled,
+        healthEndpoint: data.healthEndpoint,
+        healthHeaders: data.healthHeaders,
+      })
+      .returning();
     return toSite(row);
   }
 
@@ -88,13 +95,17 @@ class SiteRepository {
     if (data.domain !== undefined) update.domain = data.domain;
     if (data.upstream !== undefined) update.upstream = data.upstream;
     if (data.routeId !== undefined) update.routeId = data.routeId;
-    if (data.caddyServerName !== undefined) update.caddyServerName = data.caddyServerName;
+    if (data.caddyServerName !== undefined)
+      update.caddyServerName = data.caddyServerName;
     if (data.routeConfig !== undefined) update.routeConfig = data.routeConfig;
     if (data.tlsEnabled !== undefined) update.tlsEnabled = data.tlsEnabled;
-    if (data.healthEndpoint !== undefined) update.healthEndpoint = data.healthEndpoint;
-    if (data.healthHeaders !== undefined) update.healthHeaders = data.healthHeaders;
+    if (data.healthEndpoint !== undefined)
+      update.healthEndpoint = data.healthEndpoint;
+    if (data.healthHeaders !== undefined)
+      update.healthHeaders = data.healthHeaders;
 
-    const [row] = await db.update(sites)
+    const [row] = await db
+      .update(sites)
       .set(update)
       .where(eq(sites.id, id))
       .returning();
@@ -102,19 +113,34 @@ class SiteRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await db.delete(sites).where(eq(sites.id, id)).returning({ id: sites.id });
+    const [row] = await db
+      .delete(sites)
+      .where(eq(sites.id, id))
+      .returning({ id: sites.id });
     return !!row;
   }
 
   async findByServer(serverId: string): Promise<Site[]> {
-    const rows = await db.select().from(sites).where(eq(sites.serverId, serverId));
+    const rows = await db
+      .select()
+      .from(sites)
+      .where(eq(sites.serverId, serverId));
     return rows.map(toSite);
   }
 
-  async findByDomainAndServer(domain: string, serverId: string): Promise<Site | undefined> {
-    const [row] = await db.select()
+  async findByDomainAndServer(
+    domain: string,
+    serverId: string,
+  ): Promise<Site | undefined> {
+    const [row] = await db
+      .select()
       .from(sites)
-      .where(and(eq(sites.domain, domain), eq(sites.serverId, serverId)))
+      .where(
+        and(
+          sql`lower(trim(trailing '.' from ${sites.domain})) = lower(trim(trailing '.' from ${domain}))`,
+          eq(sites.serverId, serverId),
+        ),
+      )
       .limit(1);
     return row ? toSite(row) : undefined;
   }
@@ -131,7 +157,8 @@ class SiteRepository {
     lastCheckedAt: Date,
     consecutiveFailures: number,
   ): Promise<void> {
-    await db.update(sites)
+    await db
+      .update(sites)
       .set({
         status,
         statusDetail,
@@ -139,6 +166,13 @@ class SiteRepository {
         lastCheckedAt,
         consecutiveFailures,
       })
+      .where(eq(sites.id, id));
+  }
+
+  async markNotProvisioned(id: string, detail: string): Promise<void> {
+    await db
+      .update(sites)
+      .set({ status: "not_provisioned", statusDetail: detail, synced: false })
       .where(eq(sites.id, id));
   }
 }

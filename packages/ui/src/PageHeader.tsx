@@ -1,5 +1,5 @@
-import React from 'react';
-import {SignalStrip} from './SignalStrip';
+import React from "react";
+import { SignalStrip } from "./SignalStrip";
 
 interface PageHeaderProps {
   eyebrow: string;
@@ -9,7 +9,13 @@ interface PageHeaderProps {
   signal?: React.ReactNode;
 }
 
-export function PageHeader({eyebrow, title, description, actions, signal}: PageHeaderProps) {
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  signal,
+}: PageHeaderProps) {
   return (
     <div className="page-heading">
       <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">

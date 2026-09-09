@@ -1,19 +1,22 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
-import './styles/index.scss';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Layout } from '@caddy-manager/ui';
-import { AuthProvider, useAuth } from './api/auth';
-import Dashboard from './pages/Dashboard';
-import Servers from './pages/Servers';
-import Sites from './pages/Sites';
-import SiteEditor from './pages/SiteEditor';
-import SiteOverview from './pages/SiteOverview';
-import Config from './pages/Config';
-import Logs from './pages/Logs';
-import Audit from './pages/Audit';
-import Login from './pages/Login';
+import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+import "./styles/index.scss";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
+import { Layout } from "@caddy-manager/ui";
+import { AuthProvider, useAuth } from "./api/auth";
+import Dashboard from "./pages/Dashboard";
+import Servers from "./pages/Servers";
+import Sites from "./pages/Sites";
+import SiteInventory from "./pages/SiteInventory";
+import SiteEditor from "./pages/SiteEditor";
+import SiteOverview from "./pages/SiteOverview";
+import Config from "./pages/Config";
+import Logs from "./pages/Logs";
+import Audit from "./pages/Audit";
+import Login from "./pages/Login";
+import { notificationConfig } from "./config/notifications";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +54,7 @@ function AppRoutes() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/servers" element={<Servers />} />
                 <Route path="/sites" element={<Sites />} />
+                <Route path="/site-inventory" element={<SiteInventory />} />
                 <Route path="/sites/new" element={<SiteEditor />} />
                 <Route path="/sites/:id" element={<SiteOverview />} />
                 <Route path="/sites/:id/edit" element={<SiteEditor />} />
@@ -69,6 +73,10 @@ function AppRoutes() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster
+        position={notificationConfig.position}
+        gutter={notificationConfig.gutter}
+      />
       <BrowserRouter>
         <AuthProvider>
           <AppRoutes />

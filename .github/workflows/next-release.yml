@@ -1,0 +1,40 @@
+name: Create next release
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - develop
+jobs:
+  action-pull-request:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    concurrency:
+      cancel-in-progress: true
+      group: next-release-develop
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Verify tested commit
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.workflow_run.head_sha }}"
+
+      - name: Create pull request
+        uses: devops-infra/action-pull-request@v1.0.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: 'Next release'
+          reviewer: ${{ github.actor }}
+          assignee: ${{ github.actor }}
+          target_branch: main
+          label: release
+          old_string: "**Write you description here**"
+          body: "${{ github.event.workflow_run.head_commit.message }}"
+          new_string: "${{ github.event.workflow_run.head_commit.message }}"
+          get_diff: false

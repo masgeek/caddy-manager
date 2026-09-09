@@ -25,7 +25,7 @@ jobs:
         uses: masgeek/github-tag-action@release
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: ''
+          tag_prefix: ""
           create_annotated_tag: true
 
       - name: Create a GitHub release
