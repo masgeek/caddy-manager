@@ -183,8 +183,8 @@ export default function Sites() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       setOperation({
-        title: "Health check complete",
-        message: "Health was checked for all API-managed sites.",
+        title: "Health check started",
+        message: "Health checks are running for API-managed sites.",
         status: "success",
       });
     },
