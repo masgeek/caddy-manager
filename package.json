@@ -33,6 +33,7 @@
     "@typescript-eslint/parser": "^8.70.0",
     "eslint": "^10.10.0",
     "prettier": "^3.9.6",
+    "prettier-plugin-multiline-arrays": "^4.1.11",
     "turbo": "^2.10.12",
     "typescript": "^5.9.3"
   },
