@@ -1,7 +1,10 @@
 import { scryptSync, timingSafeEqual } from "node:crypto";
 
 export function verifyPassword(password: string, encodedHash: string): boolean {
-  const [salt, expectedHex] = encodedHash.split(":");
+  const [
+    salt,
+    expectedHex,
+  ] = encodedHash.split(":");
   if (!salt || !expectedHex || expectedHex.length % 2 !== 0) return false;
 
   try {

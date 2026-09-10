@@ -34,7 +34,9 @@ function toAuditEvent(row: typeof auditEvents.$inferSelect): AuditEvent {
 
 class AuditRepository {
   async create(data: CreateAuditEventInput): Promise<AuditEvent> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(auditEvents)
       .values({
         userId: data.userId || "admin",

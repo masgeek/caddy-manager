@@ -7,7 +7,9 @@ export async function registerLogRoutes(app: FastifyInstance) {
     "/logs",
     {
       schema: {
-        tags: ["Logs"],
+        tags: [
+          "Logs",
+        ],
         summary: "Get application and Caddy logs",
         querystring: toJsonSchema(logQuerySchema),
         response: { 200: logListSchema },

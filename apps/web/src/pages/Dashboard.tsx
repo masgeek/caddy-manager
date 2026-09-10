@@ -28,19 +28,28 @@ function healthTone(
 export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [operation, setOperation] = useState<OperationState | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
     refetchInterval: 30_000,
   });
   const sitesQuery = useQuery({
-    queryKey: ["sites"],
+    queryKey: [
+      "sites",
+    ],
     queryFn: () => api.getSites(),
     refetchInterval: 30_000,
   });
   const healthJobQuery = useQuery({
-    queryKey: ["site-health-status"],
+    queryKey: [
+      "site-health-status",
+    ],
     queryFn: () => api.getSiteHealthStatus(),
     refetchInterval: 15_000,
   });
@@ -57,7 +66,12 @@ export default function Dashboard() {
         status: "running",
       }),
     onSuccess: (status) => {
-      queryClient.setQueryData(["site-health-status"], status);
+      queryClient.setQueryData(
+        [
+          "site-health-status",
+        ],
+        status,
+      );
       setOperation({
         title: "Scheduler updated",
         message: status.running

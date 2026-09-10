@@ -304,7 +304,12 @@ export class ApiClient {
   }): Promise<AuditEvent[]> {
     const query = new URLSearchParams();
     if (params?.limit) query.set("limit", String(params.limit));
-    for (const key of ["userId", "action", "entity", "result"] as const) {
+    for (const key of [
+      "userId",
+      "action",
+      "entity",
+      "result",
+    ] as const) {
       if (params?.[key]) query.set(key, params[key]!);
     }
     const qs = query.toString();

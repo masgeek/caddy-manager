@@ -11,7 +11,9 @@ export async function registerAuditRoutes(app: FastifyInstance) {
     "/audit",
     {
       schema: {
-        tags: ["Audit"],
+        tags: [
+          "Audit",
+        ],
         summary: "Get audit trail",
         querystring: toJsonSchema(auditQuerySchema),
         response: { 200: auditListSchema },

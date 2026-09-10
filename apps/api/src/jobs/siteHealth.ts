@@ -37,7 +37,13 @@ export function describeCron(expression: string): string {
   const parts = expression.trim().split(/\s+/);
   if (parts.length < 5) return expression;
 
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+  const [
+    minute,
+    hour,
+    dayOfMonth,
+    month,
+    dayOfWeek,
+  ] = parts;
 
   const weekdays: Record<string, string> = {
     "0": "Sunday",
@@ -287,14 +293,25 @@ export async function housekeepSiteProvisioning(): Promise<{
     const inventory = await siteInventoryRepo.findAll(server.id);
     const sites = await siteRepo.findAll(server.id);
     const inventoryByDomain = new Map(
-      inventory.map((item) => [item.domain, item]),
+      inventory.map((item) => [
+        item.domain,
+        item,
+      ]),
     );
-    const sitesByDomain = new Map(sites.map((site) => [site.domain, site]));
+    const sitesByDomain = new Map(
+      sites.map((site) => [
+        site.domain,
+        site,
+      ]),
+    );
 
     for (const item of inventory) {
       if (
         item.managementType === "dynamic" &&
-        ["provisioned", "provisioning"].includes(item.state) &&
+        [
+          "provisioned",
+          "provisioning",
+        ].includes(item.state) &&
         !sitesByDomain.has(item.domain)
       ) {
         await siteInventoryRepo.markNotProvisioned(
@@ -355,7 +372,9 @@ export async function reconcileSelectedSites(
     [];
   for (const siteId of siteIds) {
     try {
-      const preview = await previewSelectedSites([siteId]);
+      const preview = await previewSelectedSites([
+        siteId,
+      ]);
       const conflict = preview[0]?.action === "conflict";
       if (conflict)
         throw new Error(preview[0]?.detail ?? "Reconciliation conflict");
@@ -522,12 +541,17 @@ export function configContainsSite(
   const servers = http?.servers as Record<string, unknown> | undefined;
   if (!servers) return false;
 
-  return Object.entries(servers).some(([name, server]) => {
-    if (serverName && name !== serverName) return false;
-    const routes = (server as Record<string, unknown>).routes as
-      Array<Record<string, unknown>> | undefined;
-    return routes?.some((route) => routeContainsSite(route, site)) ?? false;
-  });
+  return Object.entries(servers).some(
+    ([
+      name,
+      server,
+    ]) => {
+      if (serverName && name !== serverName) return false;
+      const routes = (server as Record<string, unknown>).routes as
+        Array<Record<string, unknown>> | undefined;
+      return routes?.some((route) => routeContainsSite(route, site)) ?? false;
+    },
+  );
 }
 
 export interface ReconcileReport {
@@ -582,9 +606,15 @@ export async function reconcileAllSites(
       for (const site of dynamicSites) {
         const serverName = site.caddyServerName ?? serverNames[0];
         if (serverName)
-          byServer.set(serverName, [...(byServer.get(serverName) ?? []), site]);
+          byServer.set(serverName, [
+            ...(byServer.get(serverName) ?? []),
+            site,
+          ]);
       }
-      for (const [serverName, serverSites] of byServer) {
+      for (const [
+        serverName,
+        serverSites,
+      ] of byServer) {
         if (hasUntrackedDynamicSite(sites, inventory, serverName)) {
           logger.warn(
             { server: server.name, serverBlock: serverName },

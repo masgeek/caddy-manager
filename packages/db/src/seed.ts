@@ -20,11 +20,9 @@ async function seed() {
     process.exit(1);
   }
 
-  const [existing] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const [
+    existing,
+  ] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (existing) {
     console.log(`User ${email} already exists, skipping.`);

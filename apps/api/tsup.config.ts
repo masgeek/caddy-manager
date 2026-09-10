@@ -1,7 +1,9 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig((options) => ({
-  entry: ["src/index.ts"],
+  entry: [
+    "src/index.ts",
+  ],
   format: "esm",
   target: "node22",
   platform: "node",
@@ -33,5 +35,7 @@ export default defineConfig((options) => ({
   ],
 
   // Bundle workspace packages — they have no dist/ output
-  noExternal: [/@caddy-manager\//],
+  noExternal: [
+    /@caddy-manager\//,
+  ],
 }));

@@ -146,7 +146,11 @@ export interface User {
 
 export type UserRole = "admin" | "operator" | "viewer";
 
-export const USER_ROLES: UserRole[] = ["admin", "operator", "viewer"];
+export const USER_ROLES: UserRole[] = [
+  "admin",
+  "operator",
+  "viewer",
+];
 
 export interface ConfigurationSnapshot {
   id: string;

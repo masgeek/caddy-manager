@@ -27,18 +27,18 @@ class UserRepository {
   async findByEmail(
     email: string,
   ): Promise<typeof users.$inferSelect | undefined> {
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const [
+      row,
+    ] = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return row;
   }
 
   async findByUsername(
     username: string,
   ): Promise<typeof users.$inferSelect | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(users)
       .where(eq(users.username, username))
@@ -47,16 +47,16 @@ class UserRepository {
   }
 
   async findById(id: string): Promise<User | undefined> {
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    const [
+      row,
+    ] = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return row ? toUser(row) : undefined;
   }
 
   async create(data: CreateUserInput): Promise<User> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(users)
       .values({
         email: data.email,

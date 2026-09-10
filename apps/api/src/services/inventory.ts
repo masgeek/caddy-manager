@@ -235,7 +235,9 @@ export async function provisionInventory(id: string): Promise<SiteInventory> {
           (item.state === "provisioned" || item.id === id),
       );
       await syncDynamicRoutes(provider, serverName, allDynamic.map(routeSite));
-      const desired = buildDynamicRoutes([routeSite(current)]);
+      const desired = buildDynamicRoutes([
+        routeSite(current),
+      ]);
       if (!desired.some((route) => route["@id"] === current.routeId))
         throw new Error(`Desired route '${current.routeId}' was not built`);
 

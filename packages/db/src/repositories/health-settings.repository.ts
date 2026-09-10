@@ -27,13 +27,17 @@ function toSettings(row: typeof healthSettings.$inferSelect): HealthSettings {
 
 class HealthSettingsRepository {
   async get(): Promise<HealthSettings> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(healthSettings)
       .where(eq(healthSettings.id, "global"))
       .limit(1);
     if (row) return toSettings(row);
-    const [created] = await db
+    const [
+      created,
+    ] = await db
       .insert(healthSettings)
       .values({ id: "global", ...defaults })
       .returning();
@@ -43,7 +47,9 @@ class HealthSettingsRepository {
   async update(
     data: Omit<HealthSettings, "updatedAt">,
   ): Promise<HealthSettings> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(healthSettings)
       .values({ id: "global", ...data })
       .onConflictDoUpdate({ target: healthSettings.id, set: data })

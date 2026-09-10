@@ -44,7 +44,11 @@ describe("configContainsSite", () => {
           apps: {
             http: {
               servers: {
-                proxy: { routes: [{ "@id": "imported-route" }] },
+                proxy: {
+                  routes: [
+                    { "@id": "imported-route" },
+                  ],
+                },
               },
             },
           },
@@ -65,7 +69,19 @@ describe("configContainsSite", () => {
                   routes: [
                     {
                       handle: [
-                        { routes: [{ match: [{ host: ["example.com"] }] }] },
+                        {
+                          routes: [
+                            {
+                              match: [
+                                {
+                                  host: [
+                                    "example.com",
+                                  ],
+                                },
+                              ],
+                            },
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -96,7 +112,19 @@ describe("configContainsSite", () => {
       apps: {
         http: {
           servers: {
-            public: { routes: [{ match: [{ host: ["example.com"] }] }] },
+            public: {
+              routes: [
+                {
+                  match: [
+                    {
+                      host: [
+                        "example.com",
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
             internal: { routes: [] },
           },
         },
@@ -126,7 +154,9 @@ describe("hasUntrackedDynamicSite", () => {
   it("detects an API-managed site missing from inventory", () => {
     expect(
       hasUntrackedDynamicSite(
-        [{ domain: "api.example.com", routeId: "api-route" }],
+        [
+          { domain: "api.example.com", routeId: "api-route" },
+        ],
         [],
         "proxy",
       ),

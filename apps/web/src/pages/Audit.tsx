@@ -57,13 +57,19 @@ const auditColumns: Column<AuditEvent>[] = [
 ];
 
 export default function Audit() {
-  const [filters, setFilters] = useState({
+  const [
+    filters,
+    setFilters,
+  ] = useState({
     action: "",
     entity: "",
     result: "",
   });
   const query = useQuery({
-    queryKey: ["audit", filters],
+    queryKey: [
+      "audit",
+      filters,
+    ],
     queryFn: () => api.getAuditLogs(filters),
   });
 

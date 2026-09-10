@@ -54,7 +54,9 @@ const siteSchema = z
     if (!routeValue?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["upstream"],
+        path: [
+          "upstream",
+        ],
         message: "Complete the route details below",
       });
     }
@@ -112,7 +114,10 @@ function routeEditorValues(
     headers ??
     {}) as Record<string, string[]>;
   const responseHeaders = Object.entries(configuredHeaders).flatMap(
-    ([name, values]) => values.map((value) => ({ name, value })),
+    ([
+      name,
+      values,
+    ]) => values.map((value) => ({ name, value })),
   );
 
   if (handler === "reverse_proxy") {
@@ -226,19 +231,34 @@ function sampleRoute(
     return "Paste a complete Caddy route when the visual actions do not cover your use case.";
   const base = {
     "@id": "my-route",
-    match: [{ host: ["example.com"] }],
+    match: [
+      {
+        host: [
+          "example.com",
+        ],
+      },
+    ],
     handle: [] as Record<string, unknown>[],
     terminal: true,
   };
   if (mode === "reverse_proxy")
     base.handle = [
-      { handler: "reverse_proxy", upstreams: [{ dial: "127.0.0.1:8080" }] },
+      {
+        handler: "reverse_proxy",
+        upstreams: [
+          { dial: "127.0.0.1:8080" },
+        ],
+      },
     ];
   if (mode === "redirect")
     base.handle = [
       {
         handler: "static_response",
-        headers: { Location: ["https://example.com{http.request.uri}"] },
+        headers: {
+          Location: [
+            "https://example.com{http.request.uri}",
+          ],
+        },
         status_code: 301,
       },
     ];
@@ -251,9 +271,13 @@ function sampleRoute(
       },
     ];
   if (mode === "file_server")
-    base.handle = [{ handler: "file_server", root: "/var/www/html" }];
+    base.handle = [
+      { handler: "file_server", root: "/var/www/html" },
+    ];
   if (mode === "rewrite")
-    base.handle = [{ handler: "rewrite", uri: "/index.html" }];
+    base.handle = [
+      { handler: "rewrite", uri: "/index.html" },
+    ];
   return base;
 }
 
@@ -280,7 +304,9 @@ export function previewRoute(
 
   const route = {
     "@id": data.routeId || domains[0].replace(/[^a-zA-Z0-9_-]/g, "_"),
-    match: [{ host: domains }],
+    match: [
+      { host: domains },
+    ],
     handle: [] as Record<string, unknown>[],
     terminal: true,
   };
@@ -289,7 +315,9 @@ export function previewRoute(
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
       (result, header) => {
         if (header.name.trim() && header.value.trim())
-          result[header.name.trim()] = [header.value.trim()];
+          result[header.name.trim()] = [
+            header.value.trim(),
+          ];
         return result;
       },
       {},
@@ -299,7 +327,9 @@ export function previewRoute(
     }
     route.handle.push({
       handler: "reverse_proxy",
-      upstreams: [{ dial: data.upstream.replace(/^https?:\/\//, "") }],
+      upstreams: [
+        { dial: data.upstream.replace(/^https?:\/\//, "") },
+      ],
     });
   } else if (data.routeMode === "redirect" && data.redirectTarget) {
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
@@ -316,7 +346,10 @@ export function previewRoute(
       },
       {},
     );
-    if (!headers.Location) headers.Location = [data.redirectTarget];
+    if (!headers.Location)
+      headers.Location = [
+        data.redirectTarget,
+      ];
     route.handle = [
       {
         handler: "static_response",
@@ -328,7 +361,9 @@ export function previewRoute(
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
       (result, header) => {
         if (header.name.trim() && header.value.trim())
-          result[header.name.trim()] = [header.value.trim()];
+          result[header.name.trim()] = [
+            header.value.trim(),
+          ];
         return result;
       },
       {},
@@ -342,9 +377,13 @@ export function previewRoute(
       },
     ];
   } else if (data.routeMode === "file_server" && data.fileRoot) {
-    route.handle = [{ handler: "file_server", root: data.fileRoot }];
+    route.handle = [
+      { handler: "file_server", root: data.fileRoot },
+    ];
   } else if (data.routeMode === "rewrite" && data.rewriteUri) {
-    route.handle = [{ handler: "rewrite", uri: data.rewriteUri }];
+    route.handle = [
+      { handler: "rewrite", uri: data.rewriteUri },
+    ];
   } else {
     return undefined;
   }
@@ -361,7 +400,9 @@ function formDomains(data: SiteForm): string[] {
         data.baseDomain ? `${name}.${data.baseDomain}` : name,
       )
     : data.baseDomain
-      ? [data.baseDomain]
+      ? [
+          data.baseDomain,
+        ]
       : [];
 }
 
@@ -371,15 +412,26 @@ export default function SiteEditor({
   onClose,
 }: SiteEditorProps) {
   const { id: routeId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [
+    searchParams,
+  ] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const id = siteId ?? routeId;
   const isEdit = !!id;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [reviewData, setReviewData] = useState<SiteForm | null>(null);
-  const [operation, setOperation] = useState<OperationState | null>(null);
-  const [selectedHeaderPolicy, setSelectedHeaderPolicy] = useState("");
+  const [
+    reviewData,
+    setReviewData,
+  ] = useState<SiteForm | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
+  const [
+    selectedHeaderPolicy,
+    setSelectedHeaderPolicy,
+  ] = useState("");
 
   useEffect(() => {
     if (!modal) return;
@@ -394,15 +446,23 @@ export default function SiteEditor({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [modal, onClose]);
+  }, [
+    modal,
+    onClose,
+  ]);
 
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 
   const siteQuery = useQuery({
-    queryKey: ["site", id],
+    queryKey: [
+      "site",
+      id,
+    ],
     queryFn: () => api.getSite(id!),
     enabled: isEdit,
   });
@@ -446,7 +506,10 @@ export default function SiteEditor({
   }
   const routeSamplePreview = sampleRoute(watchedForm.routeMode);
   const blocksQuery = useQuery({
-    queryKey: ["server-blocks", selectedServerId],
+    queryKey: [
+      "server-blocks",
+      selectedServerId,
+    ],
     queryFn: () => api.getServerBlocks(selectedServerId),
     enabled: !!selectedServerId,
   });
@@ -475,14 +538,21 @@ export default function SiteEditor({
         responseStatus: "301",
       });
     }
-  }, [siteQuery.data, reset]);
+  }, [
+    siteQuery.data,
+    reset,
+  ]);
   const responseHeaders = useFieldArray({ control, name: "responseHeaders" });
   const servers = serversQuery.data || [];
 
   const handleClose = useCallback(() => {
     if (isDirty && !window.confirm("Discard unsaved site changes?")) return;
     onClose ? onClose() : navigate("/sites");
-  }, [isDirty, navigate, onClose]);
+  }, [
+    isDirty,
+    navigate,
+    onClose,
+  ]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -492,7 +562,9 @@ export default function SiteEditor({
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  }, [
+    isDirty,
+  ]);
 
   const onServerChange = useCallback(
     (serverId: string) => {
@@ -501,7 +573,10 @@ export default function SiteEditor({
         setValue("baseDomain", server.hostname);
       }
     },
-    [servers, setValue],
+    [
+      servers,
+      setValue,
+    ],
   );
 
   const toApiPayload = useCallback(
@@ -530,8 +605,16 @@ export default function SiteEditor({
         managementType: "dynamic",
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      });
       onClose ? onClose() : navigate("/sites");
     },
     onError: (error) =>
@@ -546,7 +629,11 @@ export default function SiteEditor({
   const updateMutation = useMutation({
     mutationFn: (data: SiteForm) => api.updateSite(id!, toApiPayload(data)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       onClose ? onClose() : navigate("/sites");
     },
     onError: (error) =>

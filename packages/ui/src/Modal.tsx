@@ -58,7 +58,10 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open, onClose]);
+  }, [
+    open,
+    onClose,
+  ]);
 
   if (!open) return null;
 

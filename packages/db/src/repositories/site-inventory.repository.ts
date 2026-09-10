@@ -8,7 +8,10 @@ import type {
 import { db } from "../connection";
 import { siteInventory, sites } from "../schema";
 
-const managementTypes = ["dynamic", "caddyfile"] as const;
+const managementTypes = [
+  "dynamic",
+  "caddyfile",
+] as const;
 const inventoryStates = [
   "draft",
   "ready",
@@ -77,7 +80,9 @@ class SiteInventoryRepository {
   }
 
   async findById(id: string): Promise<SiteInventory | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(siteInventory)
       .where(eq(siteInventory.id, id))
@@ -89,7 +94,9 @@ class SiteInventoryRepository {
     domain: string,
     serverId: string,
   ): Promise<SiteInventory | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(siteInventory)
       .where(
@@ -121,7 +128,9 @@ class SiteInventoryRepository {
   }
 
   async create(data: CreateSiteInventoryInput): Promise<SiteInventory> {
-    const [row] = await db.insert(siteInventory).values(data).returning();
+    const [
+      row,
+    ] = await db.insert(siteInventory).values(data).returning();
     return toInventory(row);
   }
 
@@ -129,7 +138,9 @@ class SiteInventoryRepository {
     id: string,
     data: UpdateSiteInventoryInput,
   ): Promise<SiteInventory | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .update(siteInventory)
       .set(data)
       .where(eq(siteInventory.id, id))
@@ -138,7 +149,9 @@ class SiteInventoryRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .delete(siteInventory)
       .where(eq(siteInventory.id, id))
       .returning({ id: siteInventory.id });
@@ -146,7 +159,9 @@ class SiteInventoryRepository {
   }
 
   async markProvisioning(id: string): Promise<SiteInventory | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .update(siteInventory)
       .set({
         state: "provisioning",
@@ -163,7 +178,9 @@ class SiteInventoryRepository {
     id: string,
     provisionedSiteId: string,
   ): Promise<SiteInventory | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .update(siteInventory)
       .set({
         state: "provisioned",

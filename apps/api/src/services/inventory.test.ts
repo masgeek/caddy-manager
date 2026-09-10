@@ -83,7 +83,10 @@ describe("site inventory", () => {
       { id: "server-id", apiEndpoint: "http://caddy:2019" },
     ]);
     mocks.caddyConstructor.mockImplementationOnce(() => ({
-      getServerNames: vi.fn().mockResolvedValue(["srv0", "srv1"]),
+      getServerNames: vi.fn().mockResolvedValue([
+        "srv0",
+        "srv1",
+      ]),
       getServerRoutes,
     }));
 
@@ -174,16 +177,30 @@ describe("site inventory", () => {
       state: "ready",
     };
     mocks.inventoryFindById.mockResolvedValue(item);
-    mocks.inventoryFindAll.mockResolvedValue([item, otherGroupItem]);
+    mocks.inventoryFindAll.mockResolvedValue([
+      item,
+      otherGroupItem,
+    ]);
     mocks.serverFindById.mockResolvedValue({
       id: "server-id",
       apiEndpoint: "https://caddy.test",
     });
     mocks.caddyConstructor.mockImplementation(() => ({
-      getServerNames: vi.fn().mockResolvedValue(["srv0"]),
+      getServerNames: vi.fn().mockResolvedValue([
+        "srv0",
+      ]),
     }));
     mocks.buildDynamicRoutes.mockReturnValue([
-      { "@id": "service-a", match: [{ host: [item.domain] }] },
+      {
+        "@id": "service-a",
+        match: [
+          {
+            host: [
+              item.domain,
+            ],
+          },
+        ],
+      },
     ]);
     mocks.siteFindByDomainAndServer.mockResolvedValue(undefined);
     mocks.siteCreate.mockResolvedValue(observed);
@@ -224,9 +241,13 @@ describe("site inventory", () => {
       apiEndpoint: "https://caddy.test",
     });
     mocks.caddyConstructor.mockImplementation(() => ({
-      getServerNames: vi.fn().mockResolvedValue(["srv0"]),
+      getServerNames: vi.fn().mockResolvedValue([
+        "srv0",
+      ]),
     }));
-    mocks.inventoryFindAll.mockResolvedValue([item]);
+    mocks.inventoryFindAll.mockResolvedValue([
+      item,
+    ]);
     mocks.syncDynamicRoutes.mockRejectedValue(
       new Error("Caddy rejected route"),
     );

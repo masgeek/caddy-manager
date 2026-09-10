@@ -273,8 +273,12 @@
           "name": "site_inventory_server_id_servers_id_fk",
           "tableFrom": "site_inventory",
           "tableTo": "servers",
-          "columnsFrom": ["server_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -282,8 +286,12 @@
           "name": "site_inventory_provisioned_site_id_sites_id_fk",
           "tableFrom": "site_inventory",
           "tableTo": "sites",
-          "columnsFrom": ["provisioned_site_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "provisioned_site_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -441,8 +449,12 @@
           "name": "sites_server_id_servers_id_fk",
           "tableFrom": "sites",
           "tableTo": "servers",
-          "columnsFrom": ["server_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -503,12 +515,16 @@
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": ["username"]
+          "columns": [
+            "username"
+          ]
         },
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
       },
       "policies": {},

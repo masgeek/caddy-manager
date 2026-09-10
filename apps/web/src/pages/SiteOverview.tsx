@@ -25,12 +25,17 @@ export default function SiteOverview() {
   const { id } = useParams();
   const navigate = useNavigate();
   const siteQuery = useQuery({
-    queryKey: ["site", id],
+    queryKey: [
+      "site",
+      id,
+    ],
     queryFn: () => api.getSite(id!),
     enabled: !!id,
   });
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 

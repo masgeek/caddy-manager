@@ -11,27 +11,56 @@ import OperationToast, {
 
 export default function SiteInventory() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState<{
+  const [
+    feedback,
+    setFeedback,
+  ] = useState<{
     message: string;
     kind: "success" | "danger" | "warning" | "info";
   } | null>(null);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupServerId, setNewGroupServerId] = useState("");
-  const [routeIdFilter, setRouteIdFilter] = useState("");
-  const [serverFilter, setServerFilter] = useState("");
-  const [sortBy, setSortBy] = useState<"domain" | "state" | "updatedAt">(
-    "domain",
+  const [
+    newGroupName,
+    setNewGroupName,
+  ] = useState("");
+  const [
+    newGroupServerId,
+    setNewGroupServerId,
+  ] = useState("");
+  const [
+    routeIdFilter,
+    setRouteIdFilter,
+  ] = useState("");
+  const [
+    serverFilter,
+    setServerFilter,
+  ] = useState("");
+  const [
+    sortBy,
+    setSortBy,
+  ] = useState<"domain" | "state" | "updatedAt">("domain");
+  const [
+    page,
+    setPage,
+  ] = useState(1);
+  const [
+    selectedInventoryIds,
+    setSelectedInventoryIds,
+  ] = useState<string[]>([]);
+  const [
+    reconcilePreview,
+    setReconcilePreview,
+  ] = useState<Awaited<ReturnType<typeof api.previewReconcileSites>> | null>(
+    null,
   );
-  const [page, setPage] = useState(1);
-  const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>(
-    [],
-  );
-  const [reconcilePreview, setReconcilePreview] = useState<Awaited<
-    ReturnType<typeof api.previewReconcileSites>
-  > | null>(null);
-  const [operation, setOperation] = useState<OperationState | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
   const viewParam = searchParams.get("view");
   const inventoryView =
     viewParam === "caddyfile"
@@ -56,16 +85,22 @@ export default function SiteInventory() {
       }),
   });
   const query = useQuery({
-    queryKey: ["site-inventory"],
+    queryKey: [
+      "site-inventory",
+    ],
     queryFn: () => api.getSiteInventory(),
     refetchInterval: 30_000,
   });
   const groupsQuery = useQuery({
-    queryKey: ["site-groups"],
+    queryKey: [
+      "site-groups",
+    ],
     queryFn: () => api.getSiteGroups(),
   });
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 
@@ -74,7 +109,11 @@ export default function SiteInventory() {
       api.createSiteGroup({ serverId: newGroupServerId, name: newGroupName }),
     onSuccess: () => {
       setNewGroupName("");
-      queryClient.invalidateQueries({ queryKey: ["site-groups"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-groups",
+        ],
+      });
     },
     onError: (error) =>
       setFeedback({
@@ -87,7 +126,11 @@ export default function SiteInventory() {
     mutationFn: ({ id, groupId }: { id: string; groupId: string | null }) =>
       api.updateSiteInventory(id, { groupId }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] }),
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      }),
     onError: (error) =>
       setFeedback({
         message:
@@ -98,8 +141,16 @@ export default function SiteInventory() {
   const deleteGroupMutation = useMutation({
     mutationFn: (id: string) => api.deleteSiteGroup(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["site-groups"] });
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-groups",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      });
     },
     onError: (error) =>
       setFeedback({
@@ -125,8 +176,16 @@ export default function SiteInventory() {
       return api.disableInventory(id).then(() => undefined);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
     },
     onError: (error) =>
       setFeedback({
@@ -140,8 +199,16 @@ export default function SiteInventory() {
     mutationFn: (siteIds: string[]) => api.reconcileSites(siteIds),
     onSuccess: () => {
       setSelectedInventoryIds([]);
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setOperation({
         title: "Sites reconciled",
         message: "The selected sites were reconciled with Caddy.",
@@ -201,7 +268,10 @@ export default function SiteInventory() {
         ? row.managementType === "caddyfile"
         : inventoryView === "reconcile"
           ? row.managementType === "dynamic" &&
-            ["failed", "not_provisioned"].includes(row.state)
+            [
+              "failed",
+              "not_provisioned",
+            ].includes(row.state)
           : row.managementType === "dynamic";
     const routeId = row.routeId ?? "";
     return (
@@ -211,7 +281,9 @@ export default function SiteInventory() {
         routeId.toLowerCase().includes(routeIdFilter.toLowerCase()))
     );
   });
-  const sortedRows = [...rows].sort((a, b) =>
+  const sortedRows = [
+    ...rows,
+  ].sort((a, b) =>
     sortBy === "updatedAt"
       ? String(b[sortBy]).localeCompare(String(a[sortBy]))
       : String(a[sortBy]).localeCompare(String(b[sortBy])),
@@ -222,7 +294,10 @@ export default function SiteInventory() {
   const reconciliationCount = (query.data ?? []).filter(
     (row) =>
       row.managementType === "dynamic" &&
-      ["failed", "not_provisioned"].includes(row.state),
+      [
+        "failed",
+        "not_provisioned",
+      ].includes(row.state),
   ).length;
   const routeIdOptions = [
     ...new Set(
@@ -666,7 +741,10 @@ function InventoryTable({
   const groupedRows = new Map<string, SiteInventory[]>();
   for (const row of rows) {
     const key = row.routeId ?? "ungrouped";
-    groupedRows.set(key, [...(groupedRows.get(key) ?? []), row]);
+    groupedRows.set(key, [
+      ...(groupedRows.get(key) ?? []),
+      row,
+    ]);
   }
 
   return (
@@ -704,126 +782,140 @@ function InventoryTable({
           </tr>
         </thead>
         <tbody>
-          {[...groupedRows.entries()].map(([groupId, groupRows]) => (
-            <Fragment key={groupId}>
-              <tr className="table-light" key={`${groupId}-header`}>
-                <th colSpan={selectable ? 11 : 10}>
-                  {groupId === "ungrouped" ? "Ungrouped sites" : groupId}
-                  <span className="text-muted ms-2">({groupRows.length})</span>
-                </th>
-              </tr>
-              {groupRows.map((row) => (
-                <tr key={row.id}>
-                  {selectable && (
-                    <td>
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${row.domain}`}
-                        checked={selectedIds.includes(row.id)}
-                        onChange={(event) =>
-                          onSelectionChange(
-                            event.target.checked
-                              ? [...selectedIds, row.id]
-                              : selectedIds.filter((id) => id !== row.id),
-                          )
-                        }
-                      />
-                    </td>
-                  )}
-                  <td>{row.domain}</td>
-                  <td>
-                    <code>{row.provisionedSiteId ?? "Not provisioned"}</code>
-                  </td>
-                  <td>
-                    <code>{row.routeId ?? "Caddyfile"}</code>
-                  </td>
-                  <td>{row.caddyServerName ?? "Default block"}</td>
-                  <td>{row.upstream ?? "-"}</td>
-                  <td>{row.tlsEnabled ? "Yes" : "No"}</td>
-                  <td>{row.managementType}</td>
-                  <td>
-                    <select
-                      className="form-select form-select-sm"
-                      value={row.groupId ?? ""}
-                      disabled={
-                        !row.serverId || row.managementType === "caddyfile"
-                      }
-                      onChange={(event) =>
-                        onGroupChange(row.id, event.target.value || null)
-                      }
-                    >
-                      <option value="">No group</option>
-                      {groups
-                        .filter((group) => group.serverId === row.serverId)
-                        .map((group) => (
-                          <option key={group.id} value={group.id}>
-                            {group.name}
-                          </option>
-                        ))}
-                    </select>
-                  </td>
-                  <td>
-                    {row.state}
-                    {row.stateDetail && (
-                      <div className="small text-danger">{row.stateDetail}</div>
-                    )}
-                    <div className="small text-muted">
-                      Updated {new Date(row.updatedAt).toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="d-flex gap-1">
-                    {row.managementType === "dynamic" &&
-                      row.state === "draft" && (
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => onAction(row.id, "ready")}
-                        >
-                          Mark ready
-                        </button>
-                      )}
-                    {row.managementType === "dynamic" &&
-                      [
-                        "ready",
-                        "failed",
-                        "not_provisioned",
-                        "disabled",
-                      ].includes(row.state) && (
-                        <button
-                          className="btn btn-sm btn-outline-success"
-                          onClick={() => onAction(row.id, "provision")}
-                        >
-                          Provision
-                        </button>
-                      )}
-                    {row.managementType === "dynamic" &&
-                      row.state !== "disabled" && (
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => onAction(row.id, "disable")}
-                        >
-                          Disable
-                        </button>
-                      )}
-                    {row.managementType === "dynamic" &&
-                      row.state !== "provisioned" && (
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => onAction(row.id, "delete")}
-                          title="Permanently delete this inventory definition"
-                        >
-                          <i className="bi bi-trash3" aria-hidden="true" />
-                        </button>
-                      )}
-                    {row.managementType === "caddyfile" && (
-                      <span className="small text-muted">
-                        Managed in Caddyfile
-                      </span>
-                    )}
-                  </td>
+          {[
+            ...groupedRows.entries(),
+          ].map(
+            ([
+              groupId,
+              groupRows,
+            ]) => (
+              <Fragment key={groupId}>
+                <tr className="table-light" key={`${groupId}-header`}>
+                  <th colSpan={selectable ? 11 : 10}>
+                    {groupId === "ungrouped" ? "Ungrouped sites" : groupId}
+                    <span className="text-muted ms-2">
+                      ({groupRows.length})
+                    </span>
+                  </th>
                 </tr>
-              ))}
-            </Fragment>
-          ))}
+                {groupRows.map((row) => (
+                  <tr key={row.id}>
+                    {selectable && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${row.domain}`}
+                          checked={selectedIds.includes(row.id)}
+                          onChange={(event) =>
+                            onSelectionChange(
+                              event.target.checked
+                                ? [
+                                    ...selectedIds,
+                                    row.id,
+                                  ]
+                                : selectedIds.filter((id) => id !== row.id),
+                            )
+                          }
+                        />
+                      </td>
+                    )}
+                    <td>{row.domain}</td>
+                    <td>
+                      <code>{row.provisionedSiteId ?? "Not provisioned"}</code>
+                    </td>
+                    <td>
+                      <code>{row.routeId ?? "Caddyfile"}</code>
+                    </td>
+                    <td>{row.caddyServerName ?? "Default block"}</td>
+                    <td>{row.upstream ?? "-"}</td>
+                    <td>{row.tlsEnabled ? "Yes" : "No"}</td>
+                    <td>{row.managementType}</td>
+                    <td>
+                      <select
+                        className="form-select form-select-sm"
+                        value={row.groupId ?? ""}
+                        disabled={
+                          !row.serverId || row.managementType === "caddyfile"
+                        }
+                        onChange={(event) =>
+                          onGroupChange(row.id, event.target.value || null)
+                        }
+                      >
+                        <option value="">No group</option>
+                        {groups
+                          .filter((group) => group.serverId === row.serverId)
+                          .map((group) => (
+                            <option key={group.id} value={group.id}>
+                              {group.name}
+                            </option>
+                          ))}
+                      </select>
+                    </td>
+                    <td>
+                      {row.state}
+                      {row.stateDetail && (
+                        <div className="small text-danger">
+                          {row.stateDetail}
+                        </div>
+                      )}
+                      <div className="small text-muted">
+                        Updated {new Date(row.updatedAt).toLocaleString()}
+                      </div>
+                    </td>
+                    <td className="d-flex gap-1">
+                      {row.managementType === "dynamic" &&
+                        row.state === "draft" && (
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => onAction(row.id, "ready")}
+                          >
+                            Mark ready
+                          </button>
+                        )}
+                      {row.managementType === "dynamic" &&
+                        [
+                          "ready",
+                          "failed",
+                          "not_provisioned",
+                          "disabled",
+                        ].includes(row.state) && (
+                          <button
+                            className="btn btn-sm btn-outline-success"
+                            onClick={() => onAction(row.id, "provision")}
+                          >
+                            Provision
+                          </button>
+                        )}
+                      {row.managementType === "dynamic" &&
+                        row.state !== "disabled" && (
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => onAction(row.id, "disable")}
+                          >
+                            Disable
+                          </button>
+                        )}
+                      {row.managementType === "dynamic" &&
+                        row.state !== "provisioned" && (
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => onAction(row.id, "delete")}
+                            title="Permanently delete this inventory definition"
+                          >
+                            <i className="bi bi-trash3" aria-hidden="true" />
+                          </button>
+                        )}
+                      {row.managementType === "caddyfile" && (
+                        <span className="small text-muted">
+                          Managed in Caddyfile
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </Fragment>
+            ),
+          )}
         </tbody>
       </table>
     </div>

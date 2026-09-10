@@ -21,9 +21,10 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => !!localStorage.getItem("token"),
-  );
+  const [
+    isAuthenticated,
+    setIsAuthenticated,
+  ] = useState(() => !!localStorage.getItem("token"));
 
   const login = useCallback(
     async (username: string, password: string): Promise<boolean> => {
@@ -56,7 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(logout);
     return () => setUnauthorizedHandler(undefined);
-  }, [logout]);
+  }, [
+    logout,
+  ]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -93,7 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       logout();
     }
-  }, [isAuthenticated, logout]);
+  }, [
+    isAuthenticated,
+    logout,
+  ]);
 
   return (
     <AuthContext.Provider value={{ login, logout, isAuthenticated }}>

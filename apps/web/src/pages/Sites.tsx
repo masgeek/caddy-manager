@@ -79,18 +79,48 @@ const columns: Column<Site>[] = [
 const SITE_PAGE_SIZE = 20;
 
 export default function Sites() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [operation, setOperation] = useState<OperationState | null>(null);
-  const [domainFilter, setDomainFilter] = useState("");
-  const [serverIdFilter, setServerIdFilter] = useState("");
-  const [serverFilter, setServerFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [routeIdFilter, setRouteIdFilter] = useState("");
-  const [sitePage, setSitePage] = useState(0);
+  const [
+    deleteId,
+    setDeleteId,
+  ] = useState<string | null>(null);
+  const [
+    feedback,
+    setFeedback,
+  ] = useState<string | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
+  const [
+    domainFilter,
+    setDomainFilter,
+  ] = useState("");
+  const [
+    serverIdFilter,
+    setServerIdFilter,
+  ] = useState("");
+  const [
+    serverFilter,
+    setServerFilter,
+  ] = useState("");
+  const [
+    statusFilter,
+    setStatusFilter,
+  ] = useState("");
+  const [
+    routeIdFilter,
+    setRouteIdFilter,
+  ] = useState("");
+  const [
+    sitePage,
+    setSitePage,
+  ] = useState(0);
   const siteView = searchParams.get("view") === "caddy" ? "caddy" : "api";
   const showCaddyfile = searchParams.get("showCaddyfile") === "true";
 
@@ -109,20 +139,28 @@ export default function Sites() {
   };
 
   const query = useQuery({
-    queryKey: ["sites"],
+    queryKey: [
+      "sites",
+    ],
     queryFn: () => api.getSites(),
     refetchInterval: 30_000,
   });
 
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteSite(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setDeleteId(null);
       setOperation({
         title: "Site deleted",
@@ -141,7 +179,11 @@ export default function Sites() {
   const syncMutation = useMutation({
     mutationFn: (id: string) => api.syncSite(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setOperation({
         title: "Site synced",
         message: "The site was synced successfully.",
@@ -159,7 +201,11 @@ export default function Sites() {
   const healthCheckMutation = useMutation({
     mutationFn: () => api.checkAllSites(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setOperation({
         title: "Health check started",
         message: "Health checks are running for API-managed sites.",
@@ -181,9 +227,14 @@ export default function Sites() {
   });
   const servers = serversQuery.data || [];
   const serverNames = new Map(
-    servers.map((server) => [server.id, server.name]),
+    servers.map((server) => [
+      server.id,
+      server.name,
+    ]),
   );
-  const domainOptions = [...new Set(viewRows.map((row) => row.domain))].sort();
+  const domainOptions = [
+    ...new Set(viewRows.map((row) => row.domain)),
+  ].sort();
   const routeIdOptions = [
     ...new Set(
       rows
@@ -203,7 +254,9 @@ export default function Sites() {
         .filter((value): value is string => Boolean(value)),
     ),
   ].sort();
-  const statusOptions = [...new Set(viewRows.map((row) => row.status))].sort();
+  const statusOptions = [
+    ...new Set(viewRows.map((row) => row.status)),
+  ].sort();
   const filteredRows = viewRows.filter((row) => {
     return (
       (!domainFilter || row.domain === domainFilter) &&
@@ -223,9 +276,9 @@ export default function Sites() {
     currentPage * SITE_PAGE_SIZE,
     (currentPage + 1) * SITE_PAGE_SIZE,
   );
-  const groupedPageRows = [...pageRows].sort((a, b) =>
-    (a.routeId ?? a.id).localeCompare(b.routeId ?? b.id),
-  );
+  const groupedPageRows = [
+    ...pageRows,
+  ].sort((a, b) => (a.routeId ?? a.id).localeCompare(b.routeId ?? b.id));
   const activeCount = rows.filter((row) => row.status === "active").length;
   const warningCount = rows.filter((row) => row.status === "warning").length;
   const errorCount = rows.filter((row) => row.status === "error").length;
@@ -450,7 +503,11 @@ export default function Sites() {
       {!query.isError && !query.isLoading && (
         <div className="sites-table-scroll">
           <DataTable
-            columns={[serverColumn, ...columns, actionColumn]}
+            columns={[
+              serverColumn,
+              ...columns,
+              actionColumn,
+            ]}
             rows={groupedPageRows}
             getRowId={(r) => r.id}
             groupBy={(row) => row.routeId ?? row.id}

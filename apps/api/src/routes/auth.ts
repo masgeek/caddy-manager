@@ -10,7 +10,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
     "/auth/login",
     {
       schema: {
-        tags: ["Auth"],
+        tags: [
+          "Auth",
+        ],
         summary: "Login",
         description:
           "Authenticate with username and password to receive a JWT token",

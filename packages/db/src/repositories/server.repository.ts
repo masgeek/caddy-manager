@@ -39,16 +39,16 @@ class ServerRepository {
   }
 
   async findById(id: string): Promise<Server | undefined> {
-    const [row] = await db
-      .select()
-      .from(servers)
-      .where(eq(servers.id, id))
-      .limit(1);
+    const [
+      row,
+    ] = await db.select().from(servers).where(eq(servers.id, id)).limit(1);
     return row ? toServer(row) : undefined;
   }
 
   async create(data: CreateServerInput): Promise<Server> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(servers)
       .values({
         name: data.name,
@@ -68,7 +68,9 @@ class ServerRepository {
     if (data.hostname !== undefined) update.hostname = data.hostname;
     if (data.apiEndpoint !== undefined) update.apiEndpoint = data.apiEndpoint;
 
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .update(servers)
       .set(update)
       .where(eq(servers.id, id))
@@ -77,7 +79,9 @@ class ServerRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .delete(servers)
       .where(eq(servers.id, id))
       .returning({ id: servers.id });

@@ -22,17 +22,30 @@ describe("SiteEditor route preview", () => {
   it("preserves all hostnames in a shared custom route", () => {
     const route = previewRoute({
       serverId: "server-1",
-      name: ["koelel-dev", "utumishi-dev", "koiwa-dev", "kambui"].join("\n"),
+      name: [
+        "koelel-dev",
+        "utumishi-dev",
+        "koiwa-dev",
+        "kambui",
+      ].join("\n"),
       baseDomain: "munywele.co.ke",
       routeMode: "custom",
       routeConfigJson: JSON.stringify({
         "@id": "fee-syncer-dev",
-        match: [{ host: ["koelel-dev.munywele.co.ke"] }],
+        match: [
+          {
+            host: [
+              "koelel-dev.munywele.co.ke",
+            ],
+          },
+        ],
         handle: [
           { handler: "headers", response: { set: {} } },
           {
             handler: "reverse_proxy",
-            upstreams: [{ dial: "127.0.0.1:9401" }],
+            upstreams: [
+              { dial: "127.0.0.1:9401" },
+            ],
           },
         ],
         terminal: true,
@@ -70,12 +83,18 @@ describe("SiteEditor route preview", () => {
       {
         handler: "headers",
         response: {
-          set: { "Content-Security-Policy": ["upgrade-insecure-requests"] },
+          set: {
+            "Content-Security-Policy": [
+              "upgrade-insecure-requests",
+            ],
+          },
         },
       },
       {
         handler: "reverse_proxy",
-        upstreams: [{ dial: "127.0.0.1:9621" }],
+        upstreams: [
+          { dial: "127.0.0.1:9621" },
+        ],
       },
     ]);
   });

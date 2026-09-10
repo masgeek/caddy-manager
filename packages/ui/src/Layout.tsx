@@ -18,7 +18,10 @@ interface LayoutProps {
 }
 
 export function Layout({ children, onLogout }: LayoutProps) {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 

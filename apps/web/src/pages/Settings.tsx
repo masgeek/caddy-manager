@@ -9,7 +9,13 @@ import OperationToast, {
 function describeCron(expression: string): string {
   const parts = expression.trim().split(/\s+/);
   if (parts.length !== 5) return "Enter a five-field cron expression.";
-  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+  const [
+    minute,
+    hour,
+    dayOfMonth,
+    month,
+    dayOfWeek,
+  ] = parts;
   if (
     minute.startsWith("*/") &&
     hour === "*" &&
@@ -39,12 +45,20 @@ function describeCron(expression: string): string {
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const [operation, setOperation] = useState<OperationState | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
   const query = useQuery({
-    queryKey: ["site-health-settings"],
+    queryKey: [
+      "site-health-settings",
+    ],
     queryFn: () => api.getSiteHealthSettings(),
   });
-  const [form, setForm] = useState({
+  const [
+    form,
+    setForm,
+  ] = useState({
     enabled: true,
     schedule: "*/5 * * * *",
     timeoutMs: 5000,
@@ -52,13 +66,24 @@ export default function Settings() {
     retries: 2,
     retryDelayMs: 250,
   });
-  const [cronParts, setCronParts] = useState(["*/5", "*", "*", "*", "*"]);
+  const [
+    cronParts,
+    setCronParts,
+  ] = useState([
+    "*/5",
+    "*",
+    "*",
+    "*",
+    "*",
+  ]);
   useEffect(() => {
     if (query.data) {
       setForm(query.data);
       setCronParts(query.data.schedule.trim().split(/\s+/));
     }
-  }, [query.data]);
+  }, [
+    query.data,
+  ]);
   const mutation = useMutation({
     mutationFn: () => api.updateSiteHealthSettings(form),
     onMutate: () =>
@@ -68,8 +93,17 @@ export default function Settings() {
         status: "running",
       }),
     onSuccess: (settings) => {
-      queryClient.setQueryData(["site-health-settings"], settings);
-      queryClient.invalidateQueries({ queryKey: ["site-health-status"] });
+      queryClient.setQueryData(
+        [
+          "site-health-settings",
+        ],
+        settings,
+      );
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-health-status",
+        ],
+      });
       setOperation({
         title: "Health settings saved",
         message: "The scheduler configuration was updated.",
@@ -124,25 +158,31 @@ export default function Settings() {
               Cron schedule
             </legend>
             <div className="row g-2">
-              {["Minute", "Hour", "Day of month", "Month", "Day of week"].map(
-                (label, index) => (
-                  <label className="col-12 col-sm" key={label}>
-                    <span className="small text-muted">{label}</span>
-                    <input
-                      className="form-control font-monospace"
-                      value={cronParts[index] ?? "*"}
-                      placeholder={index === 0 ? "*/5" : "*"}
-                      aria-label={`Cron ${label}`}
-                      onChange={(event) => {
-                        const next = [...cronParts];
-                        next[index] = event.target.value.replace(/\s/g, "");
-                        setCronParts(next);
-                        setForm({ ...form, schedule: next.join(" ") });
-                      }}
-                    />
-                  </label>
-                ),
-              )}
+              {[
+                "Minute",
+                "Hour",
+                "Day of month",
+                "Month",
+                "Day of week",
+              ].map((label, index) => (
+                <label className="col-12 col-sm" key={label}>
+                  <span className="small text-muted">{label}</span>
+                  <input
+                    className="form-control font-monospace"
+                    value={cronParts[index] ?? "*"}
+                    placeholder={index === 0 ? "*/5" : "*"}
+                    aria-label={`Cron ${label}`}
+                    onChange={(event) => {
+                      const next = [
+                        ...cronParts,
+                      ];
+                      next[index] = event.target.value.replace(/\s/g, "");
+                      setCronParts(next);
+                      setForm({ ...form, schedule: next.join(" ") });
+                    }}
+                  />
+                </label>
+              ))}
             </div>
             <span className="small text-muted d-block mt-2">
               {describeCron(form.schedule)}
