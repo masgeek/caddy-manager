@@ -3,6 +3,7 @@
     "prettier-plugin-multiline-arrays",
     "prettier-plugin-packagejson"
   ],
+  "packageSortOrder": ["name"],
   "printWidth": 80,
   "tabWidth": 2,
   "useTabs": false,
