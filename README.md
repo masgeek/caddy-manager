@@ -135,4 +135,3 @@ New installations default to enabled checks every five minutes with a
 - [Docker Deployment](docs/DOCKER.md) — Compose services, configuration, and operations
 - [Site Inventory](docs/INVENTORY.md) — Lifecycle, provisioning, and deletion rules
 - [Caddy systemd Setup](docs/CADDY_SYSTEMD.md) — Persist API-managed JSON configuration across restarts
-- [Homarr Dashboard](docker/README.md) — Optional Homarr integration and proxy setup
