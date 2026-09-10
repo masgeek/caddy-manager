@@ -4,7 +4,7 @@ Caddy Manager runs as three Compose services:
 
 - `db`: PostgreSQL persistence.
 - `migrate`: applies Drizzle migrations and seeds the initial user.
-- `api`: Combined Fastify API and Nginx-hosted React application.
+- `api`: Combined Fastify API and React application served by Fastify.
 
 The Caddy server itself remains external. The API connects to it using the
 configured Caddy Admin API endpoint.
@@ -43,7 +43,7 @@ docker compose up -d --build
 
 The migration service runs after PostgreSQL is healthy. The combined
 application starts only after migrations complete and exposes the web
-application on `WEB_PORT`, with `/api` proxied to the local Fastify process.
+application on `WEB_PORT`; the API and frontend use the same origin.
 
 Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
 
@@ -85,10 +85,9 @@ The combined application image uses:
 
 - `Dockerfile`
 - `apps/api/Dockerfile.migrations`
-- `docker/nginx.conf`
-- `docker/combined-entrypoint.sh`
 
-The combined application and migration runtime containers run as the
+The combined application runtime serves the frontend through Fastify and runs
+as the unprivileged `caddy` user. The migration runtime also runs as the
 unprivileged `caddy` user.
 
 ## GitHub Actions

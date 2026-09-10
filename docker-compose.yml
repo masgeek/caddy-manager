@@ -58,7 +58,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${WEB_PORT:-80}:8080"
+      - "${WEB_PORT:-80}:3500"
     environment:
       PORT: 3500
       LOG_LEVEL: ${LOG_LEVEL:-info}
@@ -82,7 +82,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'node -e "fetch(''http://127.0.0.1:8080/api/health'').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"',
+           'node -e "fetch(''http://127.0.0.1:3500/api/health'').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"',
         ]
       interval: 10s
       timeout: 5s
