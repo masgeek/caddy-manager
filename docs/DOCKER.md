@@ -64,8 +64,9 @@ container restarts.
 On a new installation, the database defaults are enabled, `*/5 * * * *`, a
 5-second timeout, five concurrent checks, two retries, and a 250ms retry delay.
 Health checks use the configured timeout, concurrency, retry count, and retry
-delay. Check results include latency, consecutive failures, and the last-run
-summary exposed by the API.
+delay. Retry delays use exponential backoff with per-attempt jitter and a
+60-second cap to avoid flooding a failing target. Check results include
+latency, consecutive failures, and the last-run summary exposed by the API.
 
 The API writes structured logs to `LOG_FILE`, which defaults to
 `logs/caddy-manager.log`, and rotates that file daily. Rotated files are

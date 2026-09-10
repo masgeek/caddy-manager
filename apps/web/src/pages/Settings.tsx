@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@caddy-manager/ui";
 import { api } from "../api/client";
+import OperationToast, {
+  type OperationState,
+} from "../components/OperationToast";
 
 function describeCron(expression: string): string {
   const parts = expression.trim().split(/\s+/);
@@ -36,6 +39,7 @@ function describeCron(expression: string): string {
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const [operation, setOperation] = useState<OperationState | null>(null);
   const query = useQuery({
     queryKey: ["site-health-settings"],
     queryFn: () => api.getSiteHealthSettings(),
@@ -57,10 +61,30 @@ export default function Settings() {
   }, [query.data]);
   const mutation = useMutation({
     mutationFn: () => api.updateSiteHealthSettings(form),
+    onMutate: () =>
+      setOperation({
+        title: "Saving health settings",
+        message: "Applying scheduler configuration.",
+        status: "running",
+      }),
     onSuccess: (settings) => {
       queryClient.setQueryData(["site-health-settings"], settings);
       queryClient.invalidateQueries({ queryKey: ["site-health-status"] });
+      setOperation({
+        title: "Health settings saved",
+        message: "The scheduler configuration was updated.",
+        status: "success",
+      });
     },
+    onError: (error) =>
+      setOperation({
+        title: "Save failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to save health settings.",
+        status: "error",
+      }),
   });
 
   return (
@@ -185,7 +209,7 @@ export default function Settings() {
               }
             />
             <span className="small text-muted">
-              Wait time between failed attempts.
+              Base delay for exponential backoff with jitter between attempts.
             </span>
           </label>
         </div>
@@ -200,13 +224,11 @@ export default function Settings() {
         >
           {mutation.isPending ? "Saving..." : "Save settings"}
         </button>
-        {mutation.isSuccess && (
-          <span className="text-success ms-3">Settings saved.</span>
-        )}
-        {mutation.isError && (
-          <span className="text-danger ms-3">Failed to save settings.</span>
-        )}
       </section>
+      <OperationToast
+        operation={operation}
+        onClose={() => setOperation(null)}
+      />
     </div>
   );
 }

@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader, StatusBadge, formatDateTime } from "@caddy-manager/ui";
 import { api } from "../api/client";
+import OperationToast, {
+  type OperationState,
+} from "../components/OperationToast";
 
 function formatCheckedAt(value?: string): string {
   if (!value) return "Not checked yet";
@@ -24,6 +28,7 @@ function healthTone(
 export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [operation, setOperation] = useState<OperationState | null>(null);
   const serversQuery = useQuery({
     queryKey: ["servers"],
     queryFn: () => api.getServers(),
@@ -42,8 +47,34 @@ export default function Dashboard() {
   const healthJobMutation = useMutation({
     mutationFn: (action: "pause" | "resume") =>
       action === "pause" ? api.pauseSiteHealth() : api.resumeSiteHealth(),
-    onSuccess: (status) =>
-      queryClient.setQueryData(["site-health-status"], status),
+    onMutate: (action) =>
+      setOperation({
+        title:
+          action === "pause"
+            ? "Pausing health checks"
+            : "Resuming health checks",
+        message: "Updating the scheduler.",
+        status: "running",
+      }),
+    onSuccess: (status) => {
+      queryClient.setQueryData(["site-health-status"], status);
+      setOperation({
+        title: "Scheduler updated",
+        message: status.running
+          ? "Health checks are running."
+          : "Health checks are paused.",
+        status: "success",
+      });
+    },
+    onError: (error) =>
+      setOperation({
+        title: "Scheduler update failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to update scheduler.",
+        status: "error",
+      }),
   });
 
   const servers = serversQuery.data || [];
@@ -326,6 +357,10 @@ export default function Dashboard() {
           </div>
         </>
       )}
+      <OperationToast
+        operation={operation}
+        onClose={() => setOperation(null)}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyHttpStatus,
+  calculateRetryDelay,
   configContainsSite,
   hasUntrackedDynamicSite,
   isHealthCheckableSite,
@@ -17,6 +18,21 @@ describe("classifyHttpStatus", () => {
 
   it("treats successful responses as active", () => {
     expect(classifyHttpStatus(200)).toBe("active");
+  });
+});
+
+describe("calculateRetryDelay", () => {
+  it("doubles the maximum delay for each retry", () => {
+    expect(calculateRetryDelay(250, 0, () => 1)).toBe(250);
+    expect(calculateRetryDelay(250, 1, () => 1)).toBe(500);
+  });
+
+  it("adds jitter within the exponential window", () => {
+    expect(calculateRetryDelay(250, 2, () => 0.4)).toBe(400);
+  });
+
+  it("caps the exponential delay", () => {
+    expect(calculateRetryDelay(60_000, 4, () => 1)).toBe(60_000);
   });
 });
 

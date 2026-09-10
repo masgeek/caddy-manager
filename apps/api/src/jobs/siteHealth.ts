@@ -127,6 +127,15 @@ export function classifyHttpStatus(
   return "active";
 }
 
+export function calculateRetryDelay(
+  baseDelayMs: number,
+  attempt: number,
+  random = Math.random,
+): number {
+  const exponentialDelay = Math.min(baseDelayMs * 2 ** attempt, 60_000);
+  return Math.round(random() * exponentialDelay);
+}
+
 async function pingSite(
   url: string,
   headers?: Record<string, string>,
@@ -218,7 +227,10 @@ async function runSiteHealthChecks(): Promise<void> {
         }
         if (result.status !== "error" || attempt === settings.retries) break;
         await new Promise((resolve) =>
-          setTimeout(resolve, settings.retryDelayMs),
+          setTimeout(
+            resolve,
+            calculateRetryDelay(settings.retryDelayMs, attempt),
+          ),
         );
       }
       if (attempts > 1)
