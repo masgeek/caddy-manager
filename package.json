@@ -23,7 +23,9 @@
     "db:seed:demo": "pnpm --filter @caddy-manager/db db:seed:demo",
     "db:purge": "pnpm --filter @caddy-manager/db db:purge",
     "db:purge:demo": "pnpm --filter @caddy-manager/db db:purge:demo",
-    "dev:kill": "npx kill-port 3500 5173"
+    "dev:kill": "npx kill-port 3500 5173",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:compose": "node scripts/compose-smoke.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^8.70.0",

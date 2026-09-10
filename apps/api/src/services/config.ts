@@ -1,6 +1,7 @@
 import type { Server, Site } from "@caddy-manager/shared-types";
 import { siteRepo, serverRepo, backfillSiteInventory } from "@caddy-manager/db";
 import { CaddyProvider } from "../providers/caddy";
+import { logger } from "../lib/logger.js";
 
 export interface ParsedSite {
   domain: string;
@@ -145,10 +146,9 @@ export async function importSitesFromConfig(
   provider: CaddyProvider,
 ): Promise<{ imported: number; skipped: number; sites: Site[] }> {
   const config = await provider.getConfig();
-  console.log(
-    "=== Imported Caddy config ===\n" +
-      JSON.stringify(config, null, 2) +
-      "\n=============================",
+  logger.debug(
+    { server: server.name, topLevelKeys: Object.keys(config) },
+    "Imported Caddy configuration",
   );
 
   const parsed = parseSitesFromConfig(config);

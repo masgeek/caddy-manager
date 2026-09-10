@@ -71,6 +71,13 @@
       "when": 1788415000000,
       "tag": "0010_backfill_site_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789019979512,
+      "tag": "0010_fair_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

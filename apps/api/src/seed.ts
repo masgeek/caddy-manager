@@ -1,5 +1,6 @@
 import { randomBytes, scryptSync } from "node:crypto";
-import { db, queryClient, userRepo } from "@caddy-manager/db";
+import { queryClient, userRepo } from "@caddy-manager/db";
+import { logger } from "./lib/logger.js";
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -14,14 +15,14 @@ async function seed() {
   const role = process.env.SEED_ROLE ?? "admin";
 
   if (!password) {
-    console.error("SEED_PASSWORD is required");
+    logger.error("SEED_PASSWORD is required");
     process.exit(1);
   }
 
   const existing = await userRepo.findByEmail(email);
 
   if (existing) {
-    console.log(`User ${email} already exists, skipping.`);
+    logger.info({ email }, "User already exists, skipping");
   } else {
     await userRepo.create({
       email,
@@ -29,13 +30,13 @@ async function seed() {
       role,
       passwordHash: hashPassword(password),
     });
-    console.log(`Created user: ${email}`);
+    logger.info({ email }, "Created user");
   }
 
   await queryClient.end();
 }
 
 seed().catch((err) => {
-  console.error("Seed failed:", err);
+  logger.error({ err }, "Seed failed");
   process.exit(1);
 });

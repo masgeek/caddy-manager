@@ -156,28 +156,6 @@ export default function Sites() {
     },
   });
 
-  const reconcileMutation = useMutation({
-    mutationFn: () => api.reconcileSites(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
-      setOperation({
-        title: "Routes reconciled",
-        message: "Missing routes were recreated in Caddy.",
-        status: "success",
-      });
-    },
-    onError: (error) => {
-      const message =
-        error instanceof Error ? error.message : "Failed to reconcile routes";
-      setFeedback(message);
-      setOperation({
-        title: "Reconciliation failed",
-        message,
-        status: "error",
-      });
-    },
-  });
-
   const healthCheckMutation = useMutation({
     mutationFn: () => api.checkAllSites(),
     onSuccess: () => {
@@ -431,24 +409,6 @@ export default function Sites() {
           >
             <i className="bi bi-heart-pulse me-1"></i>
             {healthCheckMutation.isPending ? "Checking..." : "Check API Health"}
-          </button>
-          <button
-            className="btn btn-outline-success"
-            onClick={() => {
-              setOperation({
-                title: "Reconciling routes",
-                message: "Recreating missing routes in Caddy.",
-                status: "running",
-              });
-              reconcileMutation.mutate();
-            }}
-            disabled={reconcileMutation.isPending}
-            title="Recreate missing routes in Caddy"
-          >
-            <i className="bi bi-arrow-repeat me-1"></i>
-            {reconcileMutation.isPending
-              ? "Reconciling..."
-              : "Reconcile Routes"}
           </button>
         </div>
       </div>

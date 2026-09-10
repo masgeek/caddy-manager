@@ -57,11 +57,12 @@ caddy-manager/
 - Dynamic route preview and confirmation before saving
 - Response header builder for redirects and static responses
 - Import and preservation of arbitrary Caddy route handlers
-- Configuration viewer with search/copy/download
-- Configuration reload
+- Configuration inspection and reload from server operations
 - Health monitoring
+- Configurable health checks with timeout, concurrency, retry, and scheduler controls
 - Log viewer with search and filters
 - Desired-state site inventory with provisioning lifecycle controls
+- Manual, preview-first route reconciliation with per-site results
 - Stacked non-blocking operation notifications
 - Audit trail
 - JWT-based authentication
@@ -104,8 +105,8 @@ docker compose up -d
 
 Set `CADDY_ALLOWED_HOSTS` in `.env` before starting. If Caddy runs in another
 container, attach it to the generated `caddy-manager_internal` network so the
-API can reach it. The API is intentionally not published directly; access it
-through the web container on `WEB_PORT`.
+API can reach it. The combined application is exposed on port 80 and serves
+both the frontend and API from the same origin.
 
 See [`docs/DOCKER.md`](docs/DOCKER.md) for Compose and deployment details.
 
@@ -122,6 +123,12 @@ LOG_FILE=logs/caddy-manager.log
 `LOG_LEVEL` defaults to `info`. Rotated files are retained for 30 days. In
 Docker deployments, API logs are persisted in the `api_logs` Compose volume.
 See [`docs/DOCKER.md`](docs/DOCKER.md) for operational details.
+
+Health checks run on the schedule stored in the database. The Dashboard allows
+operators to persist the enabled state, cron schedule, timeout, concurrency,
+retry count, and retry delay. Changes apply immediately and survive restarts.
+New installations default to enabled checks every five minutes with a
+5-second timeout, five workers, two retries, and a 250ms retry delay.
 
 ## Documentation
 

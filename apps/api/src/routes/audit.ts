@@ -19,7 +19,7 @@ export async function registerAuditRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const query = auditQuerySchema.parse(request.query);
-      return auditService.getAuditEvents(query.limit);
+      return auditService.getAuditEvents(query);
     },
   );
 }

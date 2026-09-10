@@ -20,9 +20,25 @@ export default function SiteInventory() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupServerId, setNewGroupServerId] = useState("");
   const [routeIdFilter, setRouteIdFilter] = useState("");
+  const [serverFilter, setServerFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"domain" | "state" | "updatedAt">(
+    "domain",
+  );
+  const [page, setPage] = useState(1);
+  const [selectedInventoryIds, setSelectedInventoryIds] = useState<string[]>(
+    [],
+  );
+  const [reconcilePreview, setReconcilePreview] = useState<Awaited<
+    ReturnType<typeof api.previewReconcileSites>
+  > | null>(null);
   const [operation, setOperation] = useState<OperationState | null>(null);
+  const viewParam = searchParams.get("view");
   const inventoryView =
-    searchParams.get("view") === "caddyfile" ? "caddyfile" : "dynamic";
+    viewParam === "caddyfile"
+      ? "caddyfile"
+      : viewParam === "reconcile"
+        ? "reconcile"
+        : "dynamic";
   const ensureMutation = useMutation({
     mutationFn: () => api.ensureDynamicInfrastructure(),
     onSuccess: (result) =>
@@ -120,6 +136,41 @@ export default function SiteInventory() {
       }),
   });
 
+  const reconcileMutation = useMutation({
+    mutationFn: (siteIds: string[]) => api.reconcileSites(siteIds),
+    onSuccess: () => {
+      setSelectedInventoryIds([]);
+      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      setOperation({
+        title: "Sites reconciled",
+        message: "The selected sites were reconciled with Caddy.",
+        status: "success",
+      });
+    },
+    onError: (error) =>
+      setOperation({
+        title: "Reconciliation failed",
+        message:
+          error instanceof Error ? error.message : "Failed to reconcile sites",
+        status: "error",
+      }),
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: (siteIds: string[]) => api.previewReconcileSites(siteIds),
+    onSuccess: setReconcilePreview,
+    onError: (error) =>
+      setOperation({
+        title: "Preview failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to preview reconciliation",
+        status: "error",
+      }),
+  });
+
   const runEnsure = () => {
     setOperation({
       title: "Ensuring Caddy setup",
@@ -146,15 +197,33 @@ export default function SiteInventory() {
 
   const rows = (query.data ?? []).filter((row) => {
     const matchesView =
-      row.managementType ===
-      (inventoryView === "caddyfile" ? "caddyfile" : "dynamic");
+      inventoryView === "caddyfile"
+        ? row.managementType === "caddyfile"
+        : inventoryView === "reconcile"
+          ? row.managementType === "dynamic" &&
+            ["failed", "not_provisioned"].includes(row.state)
+          : row.managementType === "dynamic";
     const routeId = row.routeId ?? "";
     return (
       matchesView &&
+      (!serverFilter || row.serverId === serverFilter) &&
       (!routeIdFilter ||
         routeId.toLowerCase().includes(routeIdFilter.toLowerCase()))
     );
   });
+  const sortedRows = [...rows].sort((a, b) =>
+    sortBy === "updatedAt"
+      ? String(b[sortBy]).localeCompare(String(a[sortBy]))
+      : String(a[sortBy]).localeCompare(String(b[sortBy])),
+  );
+  const pageSize = 25;
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const visibleRows = sortedRows.slice((page - 1) * pageSize, page * pageSize);
+  const reconciliationCount = (query.data ?? []).filter(
+    (row) =>
+      row.managementType === "dynamic" &&
+      ["failed", "not_provisioned"].includes(row.state),
+  ).length;
   const routeIdOptions = [
     ...new Set(
       (query.data ?? [])
@@ -163,7 +232,8 @@ export default function SiteInventory() {
     ),
   ].sort();
 
-  const changeInventoryView = (view: "dynamic" | "caddyfile") => {
+  const changeInventoryView = (view: "dynamic" | "caddyfile" | "reconcile") => {
+    if (view !== "reconcile") setReconcilePreview(null);
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("view", view);
     setSearchParams(nextParams);
@@ -176,12 +246,16 @@ export default function SiteInventory() {
         title={
           inventoryView === "dynamic"
             ? "Dynamic site inventory"
-            : "Caddyfile-managed inventory"
+            : inventoryView === "caddyfile"
+              ? "Caddyfile-managed inventory"
+              : "Sites needing reconciliation"
         }
         description={
           inventoryView === "dynamic"
             ? "Desired-state definitions provisioned through the Caddy Admin API."
-            : "Definitions discovered from Caddyfile configuration and kept read-only."
+            : inventoryView === "caddyfile"
+              ? "Definitions discovered from Caddyfile configuration and kept read-only."
+              : "Dynamic sites flagged by housekeeping after their observed site went missing."
         }
         actions={
           <div className="d-flex gap-2 align-items-center">
@@ -240,10 +314,36 @@ export default function SiteInventory() {
               .length ?? 0}
           </span>
         </button>
+        <button
+          type="button"
+          className={inventoryView === "reconcile" ? "active" : ""}
+          onClick={() => changeInventoryView("reconcile")}
+          aria-current={inventoryView === "reconcile" ? "page" : undefined}
+        >
+          <i className="bi bi-arrow-repeat me-2"></i>
+          Needs reconciliation <span>{reconciliationCount}</span>
+        </button>
       </nav>
 
       <section className="card p-3 mb-3 inventory-filter-panel">
         <div className="inventory-filter-bar">
+          <label htmlFor="inventory-server-filter">Server</label>
+          <select
+            id="inventory-server-filter"
+            className="form-select inventory-route-filter"
+            value={serverFilter}
+            onChange={(event) => {
+              setServerFilter(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All servers</option>
+            {(serversQuery.data ?? []).map((server) => (
+              <option key={server.id} value={server.id}>
+                {server.name}
+              </option>
+            ))}
+          </select>
           <label htmlFor="inventory-route-id-filter">Filter by route ID</label>
           <Select
             inputId="inventory-route-id-filter"
@@ -258,7 +358,10 @@ export default function SiteInventory() {
                 ? { value: routeIdFilter, label: routeIdFilter }
                 : null
             }
-            onChange={(option) => setRouteIdFilter(option?.value ?? "")}
+            onChange={(option) => {
+              setRouteIdFilter(option?.value ?? "");
+              setPage(1);
+            }}
             isClearable
             isSearchable
             placeholder="Filter by route ID"
@@ -267,8 +370,107 @@ export default function SiteInventory() {
             menuPosition="fixed"
             styles={{ menuPortal: (base) => ({ ...base, zIndex: 1055 }) }}
           />
+          <label htmlFor="inventory-sort">Sort</label>
+          <select
+            id="inventory-sort"
+            className="form-select"
+            value={sortBy}
+            onChange={(event) => {
+              setSortBy(event.target.value as typeof sortBy);
+              setPage(1);
+            }}
+          >
+            <option value="domain">Domain</option>
+            <option value="state">State</option>
+            <option value="updatedAt">Recently updated</option>
+          </select>
         </div>
       </section>
+
+      {inventoryView === "reconcile" && (
+        <section className="card p-3 mb-3">
+          <div className="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <span className="text-muted">
+              {selectedInventoryIds.length} site
+              {selectedInventoryIds.length === 1 ? "" : "s"} selected
+            </span>
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              disabled={
+                selectedInventoryIds.length === 0 || previewMutation.isPending
+              }
+              onClick={() => {
+                previewMutation.mutate(selectedInventoryIds);
+              }}
+            >
+              <i className="bi bi-eye me-1"></i>
+              {previewMutation.isPending
+                ? "Preparing preview..."
+                : "Preview changes"}
+            </button>
+          </div>
+          {reconcilePreview && (
+            <div className="mt-3 border-top pt-3">
+              <strong>Reconciliation preview</strong>
+              <div className="table-responsive mt-2">
+                <table className="table table-sm align-middle mb-2">
+                  <thead>
+                    <tr>
+                      <th>Domain</th>
+                      <th>Server block</th>
+                      <th>Route</th>
+                      <th>Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconcilePreview.sites.map((site) => (
+                      <tr key={site.siteId}>
+                        <td>{site.domain}</td>
+                        <td>{site.serverName || "-"}</td>
+                        <td>
+                          <code>{site.routeId || "-"}</code>
+                        </td>
+                        <td
+                          className={
+                            site.action === "conflict" ? "text-danger" : ""
+                          }
+                        >
+                          <strong>{site.action.replaceAll("_", " ")}</strong>
+                          <div className="small text-muted">{site.detail}</div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                type="button"
+                className="btn btn-success"
+                disabled={
+                  reconcileMutation.isPending ||
+                  reconcilePreview.sites.some(
+                    (site) => site.action === "conflict",
+                  )
+                }
+                onClick={() => {
+                  setOperation({
+                    title: "Reconciling selected sites",
+                    message: "Applying the previewed route changes in Caddy.",
+                    status: "running",
+                  });
+                  reconcileMutation.mutate(selectedInventoryIds);
+                }}
+              >
+                <i className="bi bi-arrow-repeat me-1"></i>
+                {reconcileMutation.isPending
+                  ? "Reconciling..."
+                  : "Apply preview"}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="card p-3 mb-3">
         <div className="d-flex gap-2 align-items-center flex-wrap">
@@ -345,8 +547,14 @@ export default function SiteInventory() {
       )}
       {!query.isLoading && !query.isError && (
         <InventoryTable
-          rows={rows}
+          rows={visibleRows}
           groups={groupsQuery.data ?? []}
+          selectable={inventoryView === "reconcile"}
+          selectedIds={selectedInventoryIds}
+          onSelectionChange={(ids) => {
+            setSelectedInventoryIds(ids);
+            setReconcilePreview(null);
+          }}
           onAction={(id, action) => {
             if (
               action === "delete" &&
@@ -393,6 +601,32 @@ export default function SiteInventory() {
           }
         />
       )}
+      {pageCount > 1 && (
+        <nav
+          className="d-flex justify-content-between align-items-center mt-3"
+          aria-label="Inventory pages"
+        >
+          <span className="text-muted">
+            Page {page} of {pageCount} ({sortedRows.length} matching)
+          </span>
+          <div className="btn-group">
+            <button
+              className="btn btn-outline-secondary"
+              disabled={page === 1}
+              onClick={() => setPage((value) => value - 1)}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-outline-secondary"
+              disabled={page === pageCount}
+              onClick={() => setPage((value) => value + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </nav>
+      )}
       <OperationToast
         operation={operation}
         onClose={() => setOperation(null)}
@@ -406,6 +640,9 @@ function InventoryTable({
   groups,
   onAction,
   onGroupChange,
+  selectable,
+  selectedIds,
+  onSelectionChange,
 }: {
   rows: SiteInventory[];
   groups: SiteGroup[];
@@ -414,6 +651,9 @@ function InventoryTable({
     action: "ready" | "provision" | "disable" | "delete",
   ) => void;
   onGroupChange: (id: string, groupId: string | null) => void;
+  selectable: boolean;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -434,6 +674,23 @@ function InventoryTable({
       <table className="table align-middle mb-0">
         <thead>
           <tr>
+            {selectable && (
+              <th>
+                <input
+                  type="checkbox"
+                  aria-label="Select all visible sites"
+                  checked={
+                    rows.length > 0 &&
+                    rows.every((row) => selectedIds.includes(row.id))
+                  }
+                  onChange={(event) =>
+                    onSelectionChange(
+                      event.target.checked ? rows.map((row) => row.id) : [],
+                    )
+                  }
+                />
+              </th>
+            )}
             <th>Domain</th>
             <th>Site ID</th>
             <th>Route ID</th>
@@ -450,13 +707,29 @@ function InventoryTable({
           {[...groupedRows.entries()].map(([groupId, groupRows]) => (
             <Fragment key={groupId}>
               <tr className="table-light" key={`${groupId}-header`}>
-                <th colSpan={10}>
+                <th colSpan={selectable ? 11 : 10}>
                   {groupId === "ungrouped" ? "Ungrouped sites" : groupId}
                   <span className="text-muted ms-2">({groupRows.length})</span>
                 </th>
               </tr>
               {groupRows.map((row) => (
                 <tr key={row.id}>
+                  {selectable && (
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${row.domain}`}
+                        checked={selectedIds.includes(row.id)}
+                        onChange={(event) =>
+                          onSelectionChange(
+                            event.target.checked
+                              ? [...selectedIds, row.id]
+                              : selectedIds.filter((id) => id !== row.id),
+                          )
+                        }
+                      />
+                    </td>
+                  )}
                   <td>{row.domain}</td>
                   <td>
                     <code>{row.provisionedSiteId ?? "Not provisioned"}</code>
@@ -494,6 +767,9 @@ function InventoryTable({
                     {row.stateDetail && (
                       <div className="small text-danger">{row.stateDetail}</div>
                     )}
+                    <div className="small text-muted">
+                      Updated {new Date(row.updatedAt).toLocaleString()}
+                    </div>
                   </td>
                   <td className="d-flex gap-1">
                     {row.managementType === "dynamic" &&

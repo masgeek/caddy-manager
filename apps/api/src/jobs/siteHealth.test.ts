@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyHttpStatus,
   configContainsSite,
+  hasUntrackedDynamicSite,
   isHealthCheckableSite,
 } from "./siteHealth";
 
@@ -102,5 +103,35 @@ describe("isHealthCheckableSite", () => {
 
   it("excludes Caddyfile-managed sites without a route ID", () => {
     expect(isHealthCheckableSite({ routeId: undefined })).toBe(false);
+  });
+});
+
+describe("hasUntrackedDynamicSite", () => {
+  it("detects an API-managed site missing from inventory", () => {
+    expect(
+      hasUntrackedDynamicSite(
+        [{ domain: "api.example.com", routeId: "api-route" }],
+        [],
+        "proxy",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not block reconciliation for tracked or Caddyfile sites", () => {
+    expect(
+      hasUntrackedDynamicSite(
+        [
+          { domain: "api.example.com", routeId: "api-route" },
+          { domain: "legacy.example.com" },
+        ],
+        [
+          {
+            domain: "api.example.com",
+            managementType: "dynamic",
+          },
+        ],
+        "proxy",
+      ),
+    ).toBe(false);
   });
 });

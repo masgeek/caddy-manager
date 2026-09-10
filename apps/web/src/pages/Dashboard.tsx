@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader, StatusBadge, formatDateTime } from "@caddy-manager/ui";
 import { api } from "../api/client";
 
@@ -22,6 +23,7 @@ function healthTone(
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const serversQuery = useQuery({
     queryKey: ["servers"],
     queryFn: () => api.getServers(),
@@ -31,6 +33,17 @@ export default function Dashboard() {
     queryKey: ["sites"],
     queryFn: () => api.getSites(),
     refetchInterval: 30_000,
+  });
+  const healthJobQuery = useQuery({
+    queryKey: ["site-health-status"],
+    queryFn: () => api.getSiteHealthStatus(),
+    refetchInterval: 15_000,
+  });
+  const healthJobMutation = useMutation({
+    mutationFn: (action: "pause" | "resume") =>
+      action === "pause" ? api.pauseSiteHealth() : api.resumeSiteHealth(),
+    onSuccess: (status) =>
+      queryClient.setQueryData(["site-health-status"], status),
   });
 
   const servers = serversQuery.data || [];
@@ -61,6 +74,23 @@ export default function Dashboard() {
         description="A quiet view of your Caddy fleet, with attention surfaced only when it matters."
         actions={
           <div className="d-flex gap-2">
+            {healthJobQuery.data && (
+              <button
+                className="btn btn-outline-secondary"
+                disabled={healthJobMutation.isPending}
+                onClick={() =>
+                  healthJobMutation.mutate(
+                    healthJobQuery.data.running ? "pause" : "resume",
+                  )
+                }
+                title={`Schedule: ${healthJobQuery.data.schedule}`}
+              >
+                <i
+                  className={`bi ${healthJobQuery.data.running ? "bi-pause" : "bi-play"} me-1`}
+                />
+                {healthJobQuery.data.running ? "Pause checks" : "Resume checks"}
+              </button>
+            )}
             <button
               className="btn btn-outline-secondary"
               onClick={() => navigate("/servers")}
@@ -84,6 +114,14 @@ export default function Dashboard() {
               {checkedSites} of {sites.length} sites checked
             </span>
             <span>{formatDateTime(new Date())}</span>
+            {healthJobQuery.data && (
+              <span title={`Schedule: ${healthJobQuery.data.schedule}`}>
+                Checks {healthJobQuery.data.running ? "running" : "paused"}
+                {healthJobQuery.data.lastRun
+                  ? ` · ${healthJobQuery.data.lastRun.failed} failed`
+                  : " · no run yet"}
+              </span>
+            )}
           </>
         }
       />

@@ -140,6 +140,22 @@ export const auditEvents = pgTable("audit_events", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+export const healthSettings = pgTable("health_settings", {
+  id: varchar("id", { length: 20 }).primaryKey().default("global"),
+  enabled: boolean("enabled").notNull().default(true),
+  schedule: varchar("schedule", { length: 100 })
+    .notNull()
+    .default("*/5 * * * *"),
+  timeoutMs: integer("timeout_ms").notNull().default(5000),
+  concurrency: integer("concurrency").notNull().default(5),
+  retries: integer("retries").notNull().default(2),
+  retryDelayMs: integer("retry_delay_ms").notNull().default(250),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdateFn(() => new Date()),
+});
+
 export const users = pgTable("users", {
   id: text("id")
     .primaryKey()

@@ -58,13 +58,11 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "${WEB_PORT:-80}:3500"
+      - "80:3500"
     environment:
       PORT: 3500
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FILE: ${LOG_FILE:-logs/caddy-manager.log}
-      SITE_HEALTH_ENABLED: ${SITE_HEALTH_ENABLED:-true}
-      SITE_CHECK_CRON: ${SITE_CHECK_CRON:-*/5 * * * *}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       CADDY_ADMIN_TOKEN: ${CADDY_ADMIN_TOKEN:-}
       CADDY_ALLOWED_HOSTS: ${CADDY_ALLOWED_HOSTS:?CADDY_ALLOWED_HOSTS is required}
@@ -82,7 +80,7 @@ services:
       test:
         [
           "CMD-SHELL",
-           'node -e "fetch(''http://127.0.0.1:3500/api/health'').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"',
+          'node -e "fetch(''http://127.0.0.1:3500/api/health'').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"',
         ]
       interval: 10s
       timeout: 5s

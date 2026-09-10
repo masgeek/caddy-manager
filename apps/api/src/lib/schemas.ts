@@ -40,6 +40,12 @@ export const logQuerySchema = z.object({
 
 export const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),
+  userId: z.string().uuid().optional(),
+  action: z
+    .enum(["create", "update", "delete", "reload", "login", "logout"])
+    .optional(),
+  entity: z.enum(["site", "server", "config", "user"]).optional(),
+  result: z.enum(["success", "failure"]).optional(),
 });
 
 // ----------------------------------------------------------------

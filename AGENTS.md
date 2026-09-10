@@ -32,7 +32,7 @@
 
 ## Docker And Caddy
 
-- `docker compose up -d --build` starts PostgreSQL, the migration/seed job, the API, and the web container in dependency order. The Caddy server remains external.
+- `docker compose up -d --build` starts PostgreSQL, the migration/seed job, and the combined API/web container in dependency order. The Caddy server remains external.
 - Compose requires `DB_PASSWORD`, `JWT_SECRET`, `SEED_PASSWORD`, and `CADDY_ALLOWED_HOSTS`; attach external Caddy containers to the Compose internal network when needed.
 - `CADDY_ALLOWED_HOSTS` is an exact hostname/IP allowlist. Set `ALLOW_PRIVATE_OUTBOUND=true` only when private-network Caddy or health targets are required.
-- The API background health/reconciliation cron is enabled by default; set `SITE_HEALTH_ENABLED=false` when it must be disabled. Manual `pnpm caddy:reconcile` and `pnpm caddy:housekeep` remain available.
+- The API background health and housekeeping cron is configured in the database from the Dashboard; route reconciliation is manual from Site Inventory or `pnpm caddy:reconcile`; `pnpm caddy:housekeep` remains available.

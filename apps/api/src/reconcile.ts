@@ -1,15 +1,18 @@
 import { closeDb } from "./lib/db.js";
 import { reconcileAllSites } from "./jobs/siteHealth.js";
+import { logger } from "./lib/logger.js";
 
 const dryRun = process.argv.includes("--dry-run");
 
 try {
   const report = await reconcileAllSites({ dryRun });
-  console.log(
-    `Caddyfile-managed\n-----------------\n${report.caddyfileManaged} sites ignored by dynamic reconciliation`,
+  logger.info(
+    { caddyfileManaged: report.caddyfileManaged },
+    "Caddyfile-managed sites ignored by dynamic reconciliation",
   );
-  console.log(
-    `Dynamic\n-------\n${report.dynamicSites} sites\n${report.routeGroups} distinct route_id groups`,
+  logger.info(
+    { dynamicSites: report.dynamicSites, routeGroups: report.routeGroups },
+    "Dynamic reconciliation summary",
   );
   for (const state of [
     "draft",
@@ -20,16 +23,20 @@ try {
     "failed",
     "disabled",
   ])
-    console.log(`${state}: ${report.inventoryStates[state] ?? 0}`);
-  console.log(`Routes to create: ${report.routesToCreate}`);
-  console.log(`Routes to update: ${report.routesToUpdate}`);
-  console.log(`Legacy top-level routes to migrate: ${report.legacyRoutes}`);
-  console.log(`Routes already correct: ${report.routesAlreadyCorrect}`);
-  console.log(
-    `Conflicts: ${report.conflicts.length ? report.conflicts.join("; ") : "none"}`,
+    logger.info(
+      { state, count: report.inventoryStates[state] ?? 0 },
+      "Inventory state",
+    );
+  logger.info({ count: report.routesToCreate }, "Routes to create");
+  logger.info({ count: report.routesToUpdate }, "Routes to update");
+  logger.info(
+    { count: report.legacyRoutes },
+    "Legacy top-level routes to migrate",
   );
+  logger.info({ count: report.routesAlreadyCorrect }, "Routes already correct");
+  logger.info({ conflicts: report.conflicts }, "Reconciliation conflicts");
 } catch (error) {
-  console.error("[caddy:reconcile] failed", error);
+  logger.error({ err: error }, "Caddy reconciliation failed");
   process.exitCode = 1;
 } finally {
   await closeDb();

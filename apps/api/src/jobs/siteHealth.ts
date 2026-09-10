@@ -1,6 +1,10 @@
 import cron, { type ScheduledTask } from "node-cron";
-import { serverRepo, siteRepo, siteInventoryRepo } from "@caddy-manager/db";
-import { config } from "@caddy-manager/config";
+import {
+  healthSettingsRepo,
+  serverRepo,
+  siteRepo,
+  siteInventoryRepo,
+} from "@caddy-manager/db";
 import { CaddyProvider } from "../providers/caddy.js";
 import { buildDynamicRoutes } from "../services/config.js";
 import { assertSafeHealthUrl } from "../lib/outbound.js";
@@ -8,15 +12,28 @@ import {
   provisionInventory,
   shouldProvisionInventory,
 } from "../services/inventory.js";
-
-const PING_TIMEOUT = 5000;
+import { logger } from "../lib/logger.js";
 
 let task: ScheduledTask | null = null;
 let running = false;
 let activeRun: Promise<void> | null = null;
 let activeHealthCheck: Promise<void> | null = null;
+let lastHealthRun: {
+  startedAt: string;
+  completedAt?: string;
+  checked: number;
+  failed: number;
+} | null = null;
+let settings = {
+  enabled: true,
+  schedule: "*/5 * * * *",
+  timeoutMs: 5000,
+  concurrency: 5,
+  retries: 2,
+  retryDelayMs: 250,
+};
 
-function describeCron(expression: string): string {
+export function describeCron(expression: string): string {
   const parts = expression.trim().split(/\s+/);
   if (parts.length < 5) return expression;
 
@@ -113,9 +130,10 @@ export function classifyHttpStatus(
 async function pingSite(
   url: string,
   headers?: Record<string, string>,
+  timeoutMs = settings.timeoutMs,
 ): Promise<{ status: "active" | "warning" | "error"; detail: string }> {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), PING_TIMEOUT);
+  const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const opts: RequestInit = {
       method: "HEAD",
@@ -154,48 +172,96 @@ export async function checkAllSites(): Promise<void> {
 }
 
 async function runSiteHealthChecks(): Promise<void> {
+  settings = await healthSettingsRepo.get();
   const started = Date.now();
   const allSites = (await siteRepo.findAll()).filter(isHealthCheckableSite);
-  console.log(`[site-health] checking ${allSites.length} API-managed sites`);
-  for (const site of allSites) {
-    if (site.status === "not_provisioned") continue;
-    const checkedAt = new Date();
-    const checkStarted = Date.now();
-    const url = site.healthEndpoint || `https://${site.domain}`;
-    const parsedHeaders = site.healthHeaders
-      ? tryParseHeaders(site.healthHeaders)
-      : undefined;
-    let result: { status: "active" | "warning" | "error"; detail: string };
-    try {
-      await assertSafeHealthUrl(url);
-      result = await pingSite(url, parsedHeaders);
-    } catch (err) {
-      result = {
+  const run: {
+    startedAt: string;
+    completedAt?: string;
+    checked: number;
+    failed: number;
+  } = {
+    startedAt: new Date(started).toISOString(),
+    checked: 0,
+    failed: 0,
+  };
+  lastHealthRun = run;
+  logger.info({ count: allSites.length }, "Checking API-managed sites");
+  let nextIndex = 0;
+  const checkSite = async () => {
+    for (;;) {
+      const index = nextIndex++;
+      const site = allSites[index];
+      if (!site) return;
+      if (site.status === "not_provisioned") continue;
+      const checkedAt = new Date();
+      const checkStarted = Date.now();
+      const url = site.healthEndpoint || `https://${site.domain}`;
+      const parsedHeaders = site.healthHeaders
+        ? tryParseHeaders(site.healthHeaders)
+        : undefined;
+      let result: { status: "active" | "warning" | "error"; detail: string } = {
         status: "error",
-        detail: err instanceof Error ? err.message : String(err),
+        detail: "Request failed",
       };
-    }
-    if (result.status === "active") {
-      console.log(`[site-health] ${site.domain} → active (${url})`);
-    } else if (result.status === "warning") {
-      console.warn(
-        `[site-health] ${site.domain} → warning: ${result.detail} (${url})`,
+      let attempts = 0;
+      for (let attempt = 0; attempt <= settings.retries; attempt += 1) {
+        attempts = attempt + 1;
+        try {
+          await assertSafeHealthUrl(url);
+          result = await pingSite(url, parsedHeaders, settings.timeoutMs);
+        } catch (err) {
+          result = {
+            status: "error",
+            detail: err instanceof Error ? err.message : String(err),
+          };
+        }
+        if (result.status !== "error" || attempt === settings.retries) break;
+        await new Promise((resolve) =>
+          setTimeout(resolve, settings.retryDelayMs),
+        );
+      }
+      if (attempts > 1)
+        result.detail = `${result.detail} (after ${attempts} attempts)`;
+      if (result.status === "active") {
+        logger.info(
+          { domain: site.domain, url, status: result.status },
+          "Site health check completed",
+        );
+      } else {
+        run.failed += 1;
+        logger.warn(
+          {
+            domain: site.domain,
+            url,
+            status: result.status,
+            detail: result.detail,
+          },
+          "Site health check reported an issue",
+        );
+      }
+      run.checked += 1;
+      await siteRepo.updateHealth(
+        site.id,
+        result.status,
+        result.detail,
+        Date.now() - checkStarted,
+        checkedAt,
+        result.status === "error" ? site.consecutiveFailures + 1 : 0,
       );
-    } else {
-      console.error(
-        `[site-health] ${site.domain} → error: ${result.detail} (${url})`,
-      );
     }
-    await siteRepo.updateHealth(
-      site.id,
-      result.status,
-      result.detail,
-      Date.now() - checkStarted,
-      checkedAt,
-      result.status === "error" ? site.consecutiveFailures + 1 : 0,
-    );
-  }
-  console.log(`[site-health] completed in ${Date.now() - started}ms`);
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(settings.concurrency, allSites.length) },
+      () => checkSite(),
+    ),
+  );
+  logger.info(
+    { durationMs: Date.now() - started },
+    "Site health checks completed",
+  );
+  run.completedAt = new Date().toISOString();
 }
 
 export async function housekeepSiteProvisioning(): Promise<{
@@ -204,7 +270,6 @@ export async function housekeepSiteProvisioning(): Promise<{
 }> {
   const servers = await serverRepo.findAll();
   let inventoryMarked = 0;
-  let sitesMarked = 0;
 
   for (const server of servers) {
     const inventory = await siteInventoryRepo.findAll(server.id);
@@ -228,24 +293,185 @@ export async function housekeepSiteProvisioning(): Promise<{
       }
     }
 
-    for (const site of sites) {
-      if (!inventoryByDomain.has(site.domain)) {
-        await siteRepo.markNotProvisioned(
-          site.id,
-          "No matching site inventory definition exists",
-        );
-        sitesMarked += 1;
-      }
-    }
+    // A missing inventory row can be a transient consistency issue. Never
+    // mark an observed site unavailable here; reconciliation has a safety
+    // guard below to avoid removing its live route.
   }
 
-  return { inventoryMarked, sitesMarked };
+  return { inventoryMarked, sitesMarked: 0 };
+}
+
+export function hasUntrackedDynamicSite(
+  sites: Array<{
+    domain: string;
+    routeId?: string;
+    caddyServerName?: string;
+  }>,
+  inventory: Array<{
+    domain: string;
+    managementType: string;
+    caddyServerName?: string;
+  }>,
+  serverName: string,
+): boolean {
+  const inventoryDomains = new Set(
+    inventory
+      .filter(
+        (item) =>
+          item.managementType === "dynamic" &&
+          (item.caddyServerName ?? serverName) === serverName,
+      )
+      .map((item) => item.domain),
+  );
+  return sites.some(
+    (site) =>
+      Boolean(site.routeId) &&
+      (site.caddyServerName ?? serverName) === serverName &&
+      !inventoryDomains.has(site.domain),
+  );
 }
 
 export async function runSiteHealthCycle(): Promise<void> {
   await housekeepSiteProvisioning();
   await checkAllSites();
-  await reconcileAllSites();
+}
+
+export async function reconcileSelectedSites(
+  siteIds: string[],
+): Promise<Array<{ siteId: string; success: boolean; error?: string }>> {
+  const results: Array<{ siteId: string; success: boolean; error?: string }> =
+    [];
+  for (const siteId of siteIds) {
+    try {
+      const preview = await previewSelectedSites([siteId]);
+      const conflict = preview[0]?.action === "conflict";
+      if (conflict)
+        throw new Error(preview[0]?.detail ?? "Reconciliation conflict");
+      await provisionInventory(siteId);
+      results.push({ siteId, success: true });
+    } catch (error) {
+      results.push({
+        siteId,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return results;
+}
+
+export function getSiteHealthJobStatus(): {
+  enabled: boolean;
+  running: boolean;
+  schedule: string;
+  lastRun: typeof lastHealthRun;
+} {
+  return {
+    enabled: Boolean(task),
+    running,
+    schedule: settings.schedule,
+    lastRun: lastHealthRun,
+  };
+}
+
+export async function getSiteHealthSettings() {
+  settings = await healthSettingsRepo.get();
+  return { ...settings, scheduleDescription: describeCron(settings.schedule) };
+}
+
+export interface SelectedReconcilePreview {
+  siteId: string;
+  domain: string;
+  routeId: string;
+  serverName: string;
+  action: "create" | "update" | "already_correct" | "conflict";
+  detail: string;
+}
+
+export async function previewSelectedSites(
+  siteIds: string[],
+): Promise<SelectedReconcilePreview[]> {
+  const previews: SelectedReconcilePreview[] = [];
+  for (const siteId of siteIds) {
+    const item = await siteInventoryRepo.findById(siteId);
+    if (!item || item.managementType !== "dynamic" || !item.routeId) {
+      previews.push({
+        siteId,
+        domain: item?.domain ?? siteId,
+        routeId: item?.routeId ?? "",
+        serverName: item?.caddyServerName ?? "",
+        action: "conflict",
+        detail:
+          "Only dynamic inventory entries with a route ID can be reconciled",
+      });
+      continue;
+    }
+    if (!item.serverId) {
+      previews.push({
+        siteId,
+        domain: item.domain,
+        routeId: item.routeId,
+        serverName: item.caddyServerName ?? "",
+        action: "conflict",
+        detail: "Inventory entry is not attached to a server",
+      });
+      continue;
+    }
+    const server = await serverRepo.findById(item.serverId);
+    if (!server) throw new Error(`Server not found: ${item.serverId}`);
+    const provider = new CaddyProvider({ apiEndpoint: server.apiEndpoint });
+    const serverNames = await provider.getServerNames();
+    const serverName = item.caddyServerName ?? serverNames[0];
+    if (!serverName || !serverNames.includes(serverName)) {
+      previews.push({
+        siteId,
+        domain: item.domain,
+        routeId: item.routeId,
+        serverName: serverName ?? "",
+        action: "conflict",
+        detail: `Caddy server block not found: ${serverName ?? "(none)"}`,
+      });
+      continue;
+    }
+    const desired = buildDynamicRoutes([
+      {
+        serverId: item.serverId,
+        domain: item.domain,
+        routeId: item.routeId,
+        caddyServerName: item.caddyServerName,
+        upstream: item.upstream,
+        routeConfig: item.routeConfig,
+        tlsEnabled: item.tlsEnabled,
+      },
+    ]);
+    const desiredRoute = desired.find((route) => route["@id"] === item.routeId);
+    if (!desiredRoute)
+      throw new Error(`Desired route '${item.routeId}' was not built`);
+    let current: Record<string, unknown> | undefined;
+    try {
+      current = await provider.getRouteByID(item.routeId);
+    } catch (error) {
+      if (!(error instanceof Error && error.message.includes("404")))
+        throw error;
+    }
+    previews.push({
+      siteId,
+      domain: item.domain,
+      routeId: item.routeId,
+      serverName,
+      action: !current
+        ? "create"
+        : JSON.stringify(current) === JSON.stringify(desiredRoute)
+          ? "already_correct"
+          : "update",
+      detail: !current
+        ? "Route is missing and will be created"
+        : JSON.stringify(current) === JSON.stringify(desiredRoute)
+          ? "Caddy already matches the desired route"
+          : "Caddy route differs from the inventory definition",
+    });
+  }
+  return previews;
 }
 
 function routeContainsSite(
@@ -324,6 +550,7 @@ export async function reconcileAllSites(
     try {
       const provider = new CaddyProvider({ apiEndpoint: server.apiEndpoint });
       const inventory = await siteInventoryRepo.findAll(server.id);
+      const sites = await siteRepo.findAll(server.id);
       for (const item of inventory) {
         report.inventoryStates[item.state] =
           (report.inventoryStates[item.state] ?? 0) + 1;
@@ -346,6 +573,13 @@ export async function reconcileAllSites(
           byServer.set(serverName, [...(byServer.get(serverName) ?? []), site]);
       }
       for (const [serverName, serverSites] of byServer) {
+        if (hasUntrackedDynamicSite(sites, inventory, serverName)) {
+          logger.warn(
+            { server: server.name, serverBlock: serverName },
+            "Skipped reconciliation because an observed API-managed site has no inventory definition",
+          );
+          continue;
+        }
         const eligible = serverSites
           .filter(
             (item) =>
@@ -396,12 +630,17 @@ export async function reconcileAllSites(
       const message = err instanceof Error ? err.message : String(err);
       if (message.startsWith("Conflicting configuration"))
         report.conflicts.push(`${server.name}: ${message}`);
-      else console.error(`[site-sync] failed for server ${server.name}`, err);
+      else
+        logger.error(
+          { err, server: server.name },
+          "Site reconciliation failed",
+        );
     }
   }
 
-  console.log(
-    `[site-sync] checked ${servers.length} servers, ${report.dynamicSites} dynamic sites reconciled`,
+  logger.info(
+    { servers: servers.length, dynamicSites: report.dynamicSites },
+    "Site reconciliation completed",
   );
   return report;
 }
@@ -418,23 +657,25 @@ function tryParseHeaders(raw: string): Record<string, string> | undefined {
   return undefined;
 }
 
-export function startSiteHealthJob(): void {
+export async function startSiteHealthJob(): Promise<void> {
   if (task) return;
 
-  if (!config.siteHealthEnabled) {
-    console.log("[site-health] background job disabled by SITE_HEALTH_ENABLED");
+  settings = await healthSettingsRepo.get();
+  if (!settings.enabled) {
+    logger.info("Background site health job disabled by configuration");
     return;
   }
 
-  const expression = config.siteCheckCron;
-  console.log(
-    `[site-health] starting scheduled job (${describeCron(expression)})`,
+  const expression = settings.schedule;
+  logger.info(
+    { schedule: expression, description: describeCron(expression) },
+    "Starting scheduled site health job",
   );
   task = cron.schedule(expression, () => {
     if (running) return;
     running = true;
     const run = runSiteHealthCycle().catch((err) =>
-      console.error("[site-health] job failed", err),
+      logger.error({ err }, "Scheduled site health job failed"),
     );
     activeRun = run;
     void run.finally(() => {

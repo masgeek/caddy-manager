@@ -19,6 +19,28 @@ import type {
   ImportPreviewSite,
 } from "./types.js";
 
+export interface SiteHealthStatus {
+  enabled: boolean;
+  running: boolean;
+  schedule: string;
+  lastRun: {
+    startedAt: string;
+    completedAt?: string;
+    checked: number;
+    failed: number;
+  } | null;
+}
+export interface SiteHealthSettings {
+  enabled: boolean;
+  schedule: string;
+  timeoutMs: number;
+  concurrency: number;
+  retries: number;
+  retryDelayMs: number;
+  updatedAt: string;
+  scheduleDescription?: string;
+}
+
 export class ApiClientError extends Error {
   constructor(
     public statusCode: number,
@@ -273,9 +295,18 @@ export class ApiClient {
   }
 
   // Audit
-  async getAuditLogs(params?: { limit?: number }): Promise<AuditEvent[]> {
+  async getAuditLogs(params?: {
+    limit?: number;
+    userId?: string;
+    action?: string;
+    entity?: string;
+    result?: string;
+  }): Promise<AuditEvent[]> {
     const query = new URLSearchParams();
     if (params?.limit) query.set("limit", String(params.limit));
+    for (const key of ["userId", "action", "entity", "result"] as const) {
+      if (params?.[key]) query.set(key, params[key]!);
+    }
     const qs = query.toString();
     return this.request(`/audit${qs ? `?${qs}` : ""}`);
   }
@@ -306,8 +337,56 @@ export class ApiClient {
     return this.request(`/sites/${id}/sync`, { method: "POST", body: "{}" });
   }
 
-  async reconcileSites(): Promise<void> {
-    return this.request("/sites/reconcile", { method: "POST", body: "{}" });
+  async previewReconcileSites(siteIds: string[]): Promise<{
+    sites: Array<{
+      siteId: string;
+      domain: string;
+      routeId: string;
+      serverName: string;
+      action: "create" | "update" | "already_correct" | "conflict";
+      detail: string;
+    }>;
+  }> {
+    return this.request("/sites/reconcile/preview", {
+      method: "POST",
+      body: JSON.stringify({ siteIds }),
+    });
+  }
+
+  async reconcileSites(siteIds: string[]): Promise<{
+    success: boolean;
+    message: string;
+    results: Array<{ siteId: string; success: boolean; error?: string }>;
+  }> {
+    return this.request("/sites/reconcile", {
+      method: "POST",
+      body: JSON.stringify({ siteIds }),
+    });
+  }
+
+  async getSiteHealthStatus(): Promise<SiteHealthStatus> {
+    return this.request("/sites/health/status");
+  }
+
+  async getSiteHealthSettings(): Promise<SiteHealthSettings> {
+    return this.request("/sites/health/settings");
+  }
+
+  async updateSiteHealthSettings(
+    settings: Omit<SiteHealthSettings, "updatedAt">,
+  ): Promise<SiteHealthSettings> {
+    return this.request("/sites/health/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async pauseSiteHealth(): Promise<SiteHealthStatus> {
+    return this.request("/sites/health/pause", { method: "POST", body: "{}" });
+  }
+
+  async resumeSiteHealth(): Promise<SiteHealthStatus> {
+    return this.request("/sites/health/resume", { method: "POST", body: "{}" });
   }
 
   async checkAllSites(): Promise<void> {

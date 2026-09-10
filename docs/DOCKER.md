@@ -24,7 +24,6 @@ DB_PASSWORD=replace-me
 JWT_SECRET=replace-with-a-long-random-secret
 SEED_PASSWORD=replace-me
 CADDY_ALLOWED_HOSTS=caddy,host.docker.internal
-SITE_HEALTH_ENABLED=true
 LOG_LEVEL=info
 LOG_FILE=logs/caddy-manager.log
 IMAGE_REGISTRY=ghcr.io/masgeek
@@ -43,22 +42,40 @@ docker compose up -d --build
 
 The migration service runs after PostgreSQL is healthy. The combined
 application starts only after migrations complete and exposes the web
-application on `WEB_PORT`; the API and frontend use the same origin.
+application on port 80; the API and frontend use the same origin.
 
-Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
+Open `http://localhost` after the application container is healthy.
 
-When enabled, the API runs one complete site-health cycle during startup,
-including inventory housekeeping, API-managed site health checks, and route
-reconciliation. It then follows `SITE_CHECK_CRON` for subsequent cycles. Set
-`SITE_HEALTH_ENABLED=false` to disable both the startup cycle and the
-background cron job. Manual API actions and commands such as
-`pnpm caddy:reconcile` remain available.
+To run the deployment smoke checks against a running container, use
+`SMOKE_BASE_URL=http://localhost pnpm smoke`. The checks verify frontend
+serving, `/api/health`, and that protected API routes reject unauthenticated
+requests. The `api` service depends on the migration job completing
+successfully before it starts.
+
+When enabled in the persisted health settings, the API runs inventory
+housekeeping and API-managed site health checks during startup, then follows
+the database-configured schedule for subsequent cycles.
+Route reconciliation is manual from Site Inventory or `pnpm caddy:reconcile`.
+Manual API actions and commands such as `pnpm caddy:reconcile` remain available.
+
+The dashboard can pause and resume the scheduler and persist its enabled state.
+The schedule and health tuning values are also edited there and survive
+container restarts.
+On a new installation, the database defaults are enabled, `*/5 * * * *`, a
+5-second timeout, five concurrent checks, two retries, and a 250ms retry delay.
+Health checks use the configured timeout, concurrency, retry count, and retry
+delay. Check results include latency, consecutive failures, and the last-run
+summary exposed by the API.
 
 The API writes structured logs to `LOG_FILE`, which defaults to
 `logs/caddy-manager.log`, and rotates that file daily. Rotated files are
 retained for 30 days. `LOG_LEVEL` defaults to `info`; use standard Pino levels
 such as `debug`, `warn`, `error`, or `fatal` when more or less detail is needed.
 Compose persists the API log directory in the `api_logs` volume.
+
+For a full local Compose build, migration, startup, and smoke sequence, run
+`pnpm smoke:compose`. This starts the stack with `docker compose up -d --build`,
+runs the smoke checks, and removes the containers with `docker compose down`.
 
 ## Operations
 

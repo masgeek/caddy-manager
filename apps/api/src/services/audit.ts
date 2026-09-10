@@ -23,6 +23,8 @@ export async function recordAuditEvent(data: {
   });
 }
 
-export async function getAuditEvents(limit = 100): Promise<AuditEvent[]> {
-  return auditRepo.findAll(limit);
+export async function getAuditEvents(
+  options: Parameters<typeof auditRepo.findAll>[0] = {},
+): Promise<AuditEvent[]> {
+  return auditRepo.findAll(options);
 }
