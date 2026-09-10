@@ -1,6 +1,7 @@
 {
   "plugins": [
-    "prettier-plugin-multiline-arrays"
+    "prettier-plugin-multiline-arrays",
+    "prettier-plugin-packagejson"
   ],
   "printWidth": 80,
   "tabWidth": 2,
