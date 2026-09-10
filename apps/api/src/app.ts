@@ -1,7 +1,8 @@
 import { config } from "@caddy-manager/config";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { basename, dirname, isAbsolute, resolve } from "node:path";
 import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
 import { createStream } from "rotating-file-stream";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
@@ -42,6 +43,20 @@ export async function buildApp() {
       },
     },
   });
+
+  const webRoot = resolve(process.cwd(), "apps/web/dist");
+  if (existsSync(webRoot)) {
+    await app.register(fastifyStatic, {
+      root: webRoot,
+      wildcard: false,
+    });
+    app.setNotFoundHandler((request, reply) => {
+      if (request.method === "GET" && !request.url.startsWith("/api")) {
+        return reply.sendFile("index.html");
+      }
+      return reply.status(404).send({ statusCode: 404, message: "Not found" });
+    });
+  }
 
   app.setErrorHandler(errorHandler);
 

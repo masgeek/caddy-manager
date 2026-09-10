@@ -57,8 +57,12 @@ describe("shared UI primitives", () => {
     const onPageChange = vi.fn();
     render(
       <DataTable
-        columns={[{ field: "name", headerName: "Name" }]}
-        rows={[{ id: "one", name: "One" }]}
+        columns={[
+          { field: "name", headerName: "Name" },
+        ]}
+        rows={[
+          { id: "one", name: "One" },
+        ]}
         getRowId={(row) => row.id}
         totalCount={21}
         pageSize={20}
@@ -75,7 +79,10 @@ describe("shared UI primitives", () => {
     render(
       <SiteFilters
         domains={[]}
-        routeIds={["fee-syncer-dev", "fee-syncer-prod"]}
+        routeIds={[
+          "fee-syncer-dev",
+          "fee-syncer-prod",
+        ]}
         servers={[]}
         serverBlocks={[]}
         statuses={[]}

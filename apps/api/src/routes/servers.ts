@@ -27,7 +27,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "List all servers",
         response: { 200: serverListSchema },
       },
@@ -41,7 +43,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Get server by ID",
         params: toJsonSchema(serverParamsSchema),
         response: { 200: serverObjectSchema },
@@ -57,7 +61,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id/blocks",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "List Caddy HTTP server blocks",
         params: toJsonSchema(serverParamsSchema),
         response: { 200: { type: "array", items: { type: "string" } } },
@@ -75,7 +81,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Create a server",
         body: {
           ...toJsonSchema(createServerSchema),
@@ -87,7 +95,10 @@ export async function registerServerRoutes(app: FastifyInstance) {
         },
         response: { 201: serverObjectSchema },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const data = createServerSchema.parse(request.body);
@@ -109,7 +120,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Update a server",
         params: toJsonSchema(serverParamsSchema),
         body: {
@@ -122,7 +135,10 @@ export async function registerServerRoutes(app: FastifyInstance) {
         },
         response: { 200: serverObjectSchema },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request) => {
       const { id } = request.params as { id: string };
@@ -145,12 +161,17 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Delete a server",
         params: toJsonSchema(serverParamsSchema),
         response: { 204: { type: "null" } },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -173,7 +194,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id/health",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Check server health",
         params: toJsonSchema(serverParamsSchema),
         response: { 200: serverHealthResponseSchema },
@@ -199,12 +222,17 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id/import",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Import sites from server config",
         params: toJsonSchema(serverParamsSchema),
         response: { 200: importResponseSchema },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -236,7 +264,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/:id/import/preview",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Preview sites available for import",
         params: toJsonSchema(serverParamsSchema),
         response: {
@@ -275,7 +305,9 @@ export async function registerServerRoutes(app: FastifyInstance) {
     "/servers/discover",
     {
       schema: {
-        tags: ["Servers"],
+        tags: [
+          "Servers",
+        ],
         summary: "Discover and import from Caddy admin API",
         body: {
           ...toJsonSchema(discoverBodySchema),
@@ -283,7 +315,10 @@ export async function registerServerRoutes(app: FastifyInstance) {
         },
         response: { 200: discoverResponseSchema },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const { apiEndpoint } = discoverBodySchema.parse(request.body);

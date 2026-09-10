@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { AuditEvent } from "@caddy-manager/shared-types";
@@ -24,6 +25,16 @@ const auditColumns: Column<AuditEvent>[] = [
   },
   { field: "entity", headerName: "Entity" },
   {
+    field: "entityId",
+    headerName: "Entity ID",
+    render: (value, row) =>
+      row.entity === "site" && value ? (
+        <a href={`/sites/${String(value)}`}>{String(value)}</a>
+      ) : (
+        String(value ?? "-")
+      ),
+  },
+  {
     field: "details",
     headerName: "Details",
     render: (value) =>
@@ -46,9 +57,20 @@ const auditColumns: Column<AuditEvent>[] = [
 ];
 
 export default function Audit() {
+  const [
+    filters,
+    setFilters,
+  ] = useState({
+    action: "",
+    entity: "",
+    result: "",
+  });
   const query = useQuery({
-    queryKey: ["audit"],
-    queryFn: () => api.getAuditLogs(),
+    queryKey: [
+      "audit",
+      filters,
+    ],
+    queryFn: () => api.getAuditLogs(filters),
   });
 
   const rows = query.data || [];
@@ -71,6 +93,44 @@ export default function Audit() {
           </>
         }
       />
+      <div className="card p-3 mb-3 d-flex gap-2 flex-wrap">
+        <select
+          className="form-select"
+          style={{ maxWidth: 180 }}
+          value={filters.action}
+          onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+        >
+          <option value="">All actions</option>
+          <option value="create">Create</option>
+          <option value="update">Update</option>
+          <option value="delete">Delete</option>
+          <option value="reload">Reload</option>
+          <option value="login">Login</option>
+          <option value="logout">Logout</option>
+        </select>
+        <select
+          className="form-select"
+          style={{ maxWidth: 180 }}
+          value={filters.entity}
+          onChange={(e) => setFilters({ ...filters, entity: e.target.value })}
+        >
+          <option value="">All entities</option>
+          <option value="site">Site</option>
+          <option value="server">Server</option>
+          <option value="config">Config</option>
+          <option value="user">User</option>
+        </select>
+        <select
+          className="form-select"
+          style={{ maxWidth: 180 }}
+          value={filters.result}
+          onChange={(e) => setFilters({ ...filters, result: e.target.value })}
+        >
+          <option value="">All results</option>
+          <option value="success">Success</option>
+          <option value="failure">Failure</option>
+        </select>
+      </div>
 
       {query.isLoading && (
         <div className="alert alert-info" role="status" aria-live="polite">

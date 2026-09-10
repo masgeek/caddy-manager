@@ -22,8 +22,6 @@ export const config = {
   port: Number(process.env.PORT ?? "3500"),
   logLevel: process.env.LOG_LEVEL ?? "info",
   logFile: process.env.LOG_FILE ?? "logs/caddy-manager.log",
-  siteHealthEnabled: process.env.SITE_HEALTH_ENABLED !== "false",
-  siteCheckCron: process.env.SITE_CHECK_CRON ?? "*/5 * * * *",
 
   authUsername: process.env.AUTH_USERNAME ?? "",
   authPassword: process.env.AUTH_PASSWORD,
@@ -58,6 +56,18 @@ export function validate(): void {
   if (!config.seedPassword) missing.push("SEED_PASSWORD");
   if (missing.length > 0) {
     console.error(`Missing required env vars: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+  const invalid: string[] = [];
+  if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535)
+    invalid.push("PORT");
+  if (
+    process.env.NODE_ENV === "production" &&
+    config.jwtSecret === "dev-secret-change-in-production"
+  )
+    invalid.push("JWT_SECRET must be changed in production");
+  if (invalid.length > 0) {
+    console.error(`Invalid configuration: ${invalid.join(", ")}`);
     process.exit(1);
   }
 }

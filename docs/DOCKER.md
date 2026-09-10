@@ -1,11 +1,10 @@
 # Docker Deployment
 
-Caddy Manager runs as four Compose services:
+Caddy Manager runs as three Compose services:
 
 - `db`: PostgreSQL persistence.
 - `migrate`: applies Drizzle migrations and seeds the initial user.
-- `api`: Fastify API and background health jobs.
-- `web`: Nginx-hosted React application and `/api` reverse proxy.
+- `api`: Combined Fastify API and React application served by Fastify.
 
 The Caddy server itself remains external. The API connects to it using the
 configured Caddy Admin API endpoint.
@@ -25,7 +24,6 @@ DB_PASSWORD=replace-me
 JWT_SECRET=replace-with-a-long-random-secret
 SEED_PASSWORD=replace-me
 CADDY_ALLOWED_HOSTS=caddy,host.docker.internal
-SITE_HEALTH_ENABLED=true
 LOG_LEVEL=info
 LOG_FILE=logs/caddy-manager.log
 IMAGE_REGISTRY=ghcr.io/masgeek
@@ -42,15 +40,33 @@ only when the Caddy endpoint requires private-network access.
 docker compose up -d --build
 ```
 
-The migration service runs after PostgreSQL is healthy. The API starts only
-after migrations complete, and the web service starts after the API healthcheck
-passes.
+The migration service runs after PostgreSQL is healthy. The combined
+application starts only after migrations complete and exposes the web
+application on port 80; the API and frontend use the same origin.
 
-Open `http://localhost:${WEB_PORT:-80}` after the web container is healthy.
+Open `http://localhost` after the application container is healthy.
 
-Set `SITE_HEALTH_ENABLED=false` to disable the API background cron job for site
-health checks, inventory housekeeping, and missing-route reconciliation. Manual
-API actions and commands such as `pnpm caddy:reconcile` remain available.
+To run the deployment smoke checks against a running container, use
+`SMOKE_BASE_URL=http://localhost pnpm smoke`. The checks verify frontend
+serving, `/api/health`, and that protected API routes reject unauthenticated
+requests. The `api` service depends on the migration job completing
+successfully before it starts.
+
+When enabled in the persisted health settings, the API runs inventory
+housekeeping and API-managed site health checks during startup, then follows
+the database-configured schedule for subsequent cycles.
+Route reconciliation is manual from Site Inventory or `pnpm caddy:reconcile`.
+Manual API actions and commands such as `pnpm caddy:reconcile` remain available.
+
+The dashboard can pause and resume the scheduler and persist its enabled state.
+The schedule and health tuning values are also edited there and survive
+container restarts.
+On a new installation, the database defaults are enabled, `*/5 * * * *`, a
+5-second timeout, five concurrent checks, two retries, and a 250ms retry delay.
+Health checks use the configured timeout, concurrency, retry count, and retry
+delay. Retry delays use exponential backoff with per-attempt jitter and a
+60-second cap to avoid flooding a failing target. Check results include
+latency, consecutive failures, and the last-run summary exposed by the API.
 
 The API writes structured logs to `LOG_FILE`, which defaults to
 `logs/caddy-manager.log`, and rotates that file daily. Rotated files are
@@ -58,11 +74,15 @@ retained for 30 days. `LOG_LEVEL` defaults to `info`; use standard Pino levels
 such as `debug`, `warn`, `error`, or `fatal` when more or less detail is needed.
 Compose persists the API log directory in the `api_logs` volume.
 
+For a full local Compose build, migration, startup, and smoke sequence, run
+`pnpm smoke:compose`. This starts the stack with `docker compose up -d --build`,
+runs the smoke checks, and removes the containers with `docker compose down`.
+
 ## Operations
 
 ```bash
-# Follow service logs
-docker compose logs -f api web
+# Follow application logs
+docker compose logs -f api
 
 # Inspect persisted API log files
 docker compose exec api sh -c 'tail -f /repo/logs/caddy-manager.log'
@@ -79,14 +99,14 @@ docker compose down -v
 
 ## Image Layout
 
-The active Dockerfiles are kept beside their applications:
+The combined application image uses:
 
-- `apps/api/Dockerfile`
+- `Dockerfile`
 - `apps/api/Dockerfile.migrations`
-- `apps/web/Dockerfile`
 
-The API and migration runtime containers run as the unprivileged `caddy` user.
-The web image uses the unprivileged Nginx Alpine runtime defaults.
+The combined application runtime serves the frontend through Fastify and runs
+as the unprivileged `caddy` user. The migration runtime also runs as the
+unprivileged `caddy` user.
 
 ## GitHub Actions
 
@@ -94,15 +114,15 @@ CI is defined in `.github/workflows/ci.yml` and runs typechecking, tests,
 linting, and builds on pushes and pull requests targeting `main`.
 
 Docker publishing is defined in `.github/workflows/docker.yml` and publishes
-to GitHub Container Registry. It delegates each image build to the reusable workflow
+the combined application image and migration image to GitHub Container Registry.
+It delegates each image build to the reusable workflow
 `.github/workflows/docker-build-job.yml`, which uses the local composite action
 `.github/actions/docker-build` for multi-architecture builds, metadata, layer
 caching, SBOM generation, and provenance attestations.
 
 The published image names retain their existing suffixes:
 
-- `ghcr.io/<owner>/caddy-manager-api`
-- `ghcr.io/<owner>/caddy-manager-web`
+- `ghcr.io/<owner>/caddy-manager-api` (combined API and web)
 - `ghcr.io/<owner>/caddy-manager-migrate`
 
 The workflow uses the built-in `GITHUB_TOKEN`; no Docker Hub credentials are

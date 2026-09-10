@@ -63,16 +63,16 @@ class SiteRepository {
   }
 
   async findById(id: string): Promise<Site | undefined> {
-    const [row] = await db
-      .select()
-      .from(sites)
-      .where(eq(sites.id, id))
-      .limit(1);
+    const [
+      row,
+    ] = await db.select().from(sites).where(eq(sites.id, id)).limit(1);
     return row ? toSite(row) : undefined;
   }
 
   async create(data: CreateSiteInput): Promise<Site> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(sites)
       .values({
         serverId: data.serverId,
@@ -104,16 +104,16 @@ class SiteRepository {
     if (data.healthHeaders !== undefined)
       update.healthHeaders = data.healthHeaders;
 
-    const [row] = await db
-      .update(sites)
-      .set(update)
-      .where(eq(sites.id, id))
-      .returning();
+    const [
+      row,
+    ] = await db.update(sites).set(update).where(eq(sites.id, id)).returning();
     return row ? toSite(row) : undefined;
   }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .delete(sites)
       .where(eq(sites.id, id))
       .returning({ id: sites.id });
@@ -132,7 +132,9 @@ class SiteRepository {
     domain: string,
     serverId: string,
   ): Promise<Site | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(sites)
       .where(

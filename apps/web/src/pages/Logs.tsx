@@ -45,10 +45,16 @@ function levelClass(level: string): string {
 }
 
 export default function Logs() {
-  const [search, setSearch] = useState("");
+  const [
+    search,
+    setSearch,
+  ] = useState("");
 
   const query = useQuery({
-    queryKey: ["logs", search],
+    queryKey: [
+      "logs",
+      search,
+    ],
     queryFn: async () => {
       const result = await api.getLogs({
         search: search || undefined,

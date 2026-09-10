@@ -8,13 +8,13 @@
   "scripts": {
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
-    "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx src/seed.ts",
     "db:purge": "tsx src/purge.ts",
+    "db:purge:demo": "tsx src/seed-demo.ts --purge",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx src/seed.ts",
     "db:seed:demo": "tsx src/seed-demo.ts",
-    "db:purge:demo": "tsx src/seed-demo.ts --purge"
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@caddy-manager/config": "workspace:*",

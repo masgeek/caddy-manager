@@ -54,7 +54,9 @@ const siteSchema = z
     if (!routeValue?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["upstream"],
+        path: [
+          "upstream",
+        ],
         message: "Complete the route details below",
       });
     }
@@ -62,18 +64,60 @@ const siteSchema = z
 
 type SiteForm = z.infer<typeof siteSchema>;
 
+const COMMON_RESPONSE_HEADERS = [
+  {
+    name: "Content-Security-Policy",
+    value: "upgrade-insecure-requests",
+    label: "Content-Security-Policy: upgrade insecure requests",
+  },
+  {
+    name: "Strict-Transport-Security",
+    value: "max-age=31536000; includeSubDomains",
+    label: "Strict-Transport-Security: enforce HTTPS",
+  },
+  {
+    name: "X-Content-Type-Options",
+    value: "nosniff",
+    label: "X-Content-Type-Options: nosniff",
+  },
+  {
+    name: "X-Frame-Options",
+    value: "DENY",
+    label: "X-Frame-Options: deny framing",
+  },
+  {
+    name: "Referrer-Policy",
+    value: "strict-origin-when-cross-origin",
+    label: "Referrer-Policy: strict origin",
+  },
+  {
+    name: "Permissions-Policy",
+    value: "geolocation=(), microphone=(), camera=()",
+    label: "Permissions-Policy: disable sensitive APIs",
+  },
+];
+
 function routeEditorValues(
   routeConfig: Record<string, unknown> | undefined,
 ): Partial<SiteForm> {
   if (!routeConfig) return {};
-  const handle = (
-    routeConfig.handle as Array<Record<string, unknown>> | undefined
-  )?.[0];
+  const handles = routeConfig.handle as
+    Array<Record<string, unknown>> | undefined;
+  const headerHandle = handles?.find((item) => item.handler === "headers");
+  const handle = handles?.find((item) => item.handler !== "headers");
   if (!handle) return { routeMode: "custom" };
   const handler = handle?.handler;
   const headers = handle?.headers as Record<string, string[]> | undefined;
-  const responseHeaders = Object.entries(headers ?? {}).flatMap(
-    ([name, values]) => values.map((value) => ({ name, value })),
+  const configuredHeaders = ((
+    headerHandle?.response as Record<string, unknown> | undefined
+  )?.set ??
+    headers ??
+    {}) as Record<string, string[]>;
+  const responseHeaders = Object.entries(configuredHeaders).flatMap(
+    ([
+      name,
+      values,
+    ]) => values.map((value) => ({ name, value })),
   );
 
   if (handler === "reverse_proxy") {
@@ -83,6 +127,7 @@ function routeEditorValues(
     return {
       routeMode: "reverse_proxy",
       upstream: typeof dial === "string" ? `http://${dial}` : "",
+      responseHeaders,
     };
   }
   if (handler === "static_response") {
@@ -186,19 +231,34 @@ function sampleRoute(
     return "Paste a complete Caddy route when the visual actions do not cover your use case.";
   const base = {
     "@id": "my-route",
-    match: [{ host: ["example.com"] }],
+    match: [
+      {
+        host: [
+          "example.com",
+        ],
+      },
+    ],
     handle: [] as Record<string, unknown>[],
     terminal: true,
   };
   if (mode === "reverse_proxy")
     base.handle = [
-      { handler: "reverse_proxy", upstreams: [{ dial: "127.0.0.1:8080" }] },
+      {
+        handler: "reverse_proxy",
+        upstreams: [
+          { dial: "127.0.0.1:8080" },
+        ],
+      },
     ];
   if (mode === "redirect")
     base.handle = [
       {
         handler: "static_response",
-        headers: { Location: ["https://example.com{http.request.uri}"] },
+        headers: {
+          Location: [
+            "https://example.com{http.request.uri}",
+          ],
+        },
         status_code: 301,
       },
     ];
@@ -211,9 +271,13 @@ function sampleRoute(
       },
     ];
   if (mode === "file_server")
-    base.handle = [{ handler: "file_server", root: "/var/www/html" }];
+    base.handle = [
+      { handler: "file_server", root: "/var/www/html" },
+    ];
   if (mode === "rewrite")
-    base.handle = [{ handler: "rewrite", uri: "/index.html" }];
+    base.handle = [
+      { handler: "rewrite", uri: "/index.html" },
+    ];
   return base;
 }
 
@@ -240,18 +304,33 @@ export function previewRoute(
 
   const route = {
     "@id": data.routeId || domains[0].replace(/[^a-zA-Z0-9_-]/g, "_"),
-    match: [{ host: domains }],
+    match: [
+      { host: domains },
+    ],
     handle: [] as Record<string, unknown>[],
     terminal: true,
   };
 
   if (data.routeMode === "reverse_proxy" && data.upstream) {
-    route.handle = [
-      {
-        handler: "reverse_proxy",
-        upstreams: [{ dial: data.upstream.replace(/^https?:\/\//, "") }],
+    const headers = data.responseHeaders.reduce<Record<string, string[]>>(
+      (result, header) => {
+        if (header.name.trim() && header.value.trim())
+          result[header.name.trim()] = [
+            header.value.trim(),
+          ];
+        return result;
       },
-    ];
+      {},
+    );
+    if (Object.keys(headers).length > 0) {
+      route.handle.push({ handler: "headers", response: { set: headers } });
+    }
+    route.handle.push({
+      handler: "reverse_proxy",
+      upstreams: [
+        { dial: data.upstream.replace(/^https?:\/\//, "") },
+      ],
+    });
   } else if (data.routeMode === "redirect" && data.redirectTarget) {
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
       (result, header) => {
@@ -267,7 +346,10 @@ export function previewRoute(
       },
       {},
     );
-    if (!headers.Location) headers.Location = [data.redirectTarget];
+    if (!headers.Location)
+      headers.Location = [
+        data.redirectTarget,
+      ];
     route.handle = [
       {
         handler: "static_response",
@@ -279,7 +361,9 @@ export function previewRoute(
     const headers = data.responseHeaders.reduce<Record<string, string[]>>(
       (result, header) => {
         if (header.name.trim() && header.value.trim())
-          result[header.name.trim()] = [header.value.trim()];
+          result[header.name.trim()] = [
+            header.value.trim(),
+          ];
         return result;
       },
       {},
@@ -293,9 +377,13 @@ export function previewRoute(
       },
     ];
   } else if (data.routeMode === "file_server" && data.fileRoot) {
-    route.handle = [{ handler: "file_server", root: data.fileRoot }];
+    route.handle = [
+      { handler: "file_server", root: data.fileRoot },
+    ];
   } else if (data.routeMode === "rewrite" && data.rewriteUri) {
-    route.handle = [{ handler: "rewrite", uri: data.rewriteUri }];
+    route.handle = [
+      { handler: "rewrite", uri: data.rewriteUri },
+    ];
   } else {
     return undefined;
   }
@@ -312,7 +400,9 @@ function formDomains(data: SiteForm): string[] {
         data.baseDomain ? `${name}.${data.baseDomain}` : name,
       )
     : data.baseDomain
-      ? [data.baseDomain]
+      ? [
+          data.baseDomain,
+        ]
       : [];
 }
 
@@ -322,14 +412,26 @@ export default function SiteEditor({
   onClose,
 }: SiteEditorProps) {
   const { id: routeId } = useParams();
-  const [searchParams] = useSearchParams();
+  const [
+    searchParams,
+  ] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const id = siteId ?? routeId;
   const isEdit = !!id;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const [reviewData, setReviewData] = useState<SiteForm | null>(null);
-  const [operation, setOperation] = useState<OperationState | null>(null);
+  const [
+    reviewData,
+    setReviewData,
+  ] = useState<SiteForm | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
+  const [
+    selectedHeaderPolicy,
+    setSelectedHeaderPolicy,
+  ] = useState("");
 
   useEffect(() => {
     if (!modal) return;
@@ -344,15 +446,23 @@ export default function SiteEditor({
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [modal, onClose]);
+  }, [
+    modal,
+    onClose,
+  ]);
 
   const serversQuery = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 
   const siteQuery = useQuery({
-    queryKey: ["site", id],
+    queryKey: [
+      "site",
+      id,
+    ],
     queryFn: () => api.getSite(id!),
     enabled: isEdit,
   });
@@ -396,7 +506,10 @@ export default function SiteEditor({
   }
   const routeSamplePreview = sampleRoute(watchedForm.routeMode);
   const blocksQuery = useQuery({
-    queryKey: ["server-blocks", selectedServerId],
+    queryKey: [
+      "server-blocks",
+      selectedServerId,
+    ],
     queryFn: () => api.getServerBlocks(selectedServerId),
     enabled: !!selectedServerId,
   });
@@ -423,17 +536,23 @@ export default function SiteEditor({
         healthEndpoint: siteQuery.data.healthEndpoint ?? "",
         healthHeaders: siteQuery.data.healthHeaders ?? "",
         responseStatus: "301",
-        responseHeaders: [],
       });
     }
-  }, [siteQuery.data, reset]);
+  }, [
+    siteQuery.data,
+    reset,
+  ]);
   const responseHeaders = useFieldArray({ control, name: "responseHeaders" });
   const servers = serversQuery.data || [];
 
   const handleClose = useCallback(() => {
     if (isDirty && !window.confirm("Discard unsaved site changes?")) return;
     onClose ? onClose() : navigate("/sites");
-  }, [isDirty, navigate, onClose]);
+  }, [
+    isDirty,
+    navigate,
+    onClose,
+  ]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -443,7 +562,9 @@ export default function SiteEditor({
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  }, [
+    isDirty,
+  ]);
 
   const onServerChange = useCallback(
     (serverId: string) => {
@@ -452,7 +573,10 @@ export default function SiteEditor({
         setValue("baseDomain", server.hostname);
       }
     },
-    [servers, setValue],
+    [
+      servers,
+      setValue,
+    ],
   );
 
   const toApiPayload = useCallback(
@@ -481,8 +605,16 @@ export default function SiteEditor({
         managementType: "dynamic",
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
-      queryClient.invalidateQueries({ queryKey: ["site-inventory"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "site-inventory",
+        ],
+      });
       onClose ? onClose() : navigate("/sites");
     },
     onError: (error) =>
@@ -497,7 +629,11 @@ export default function SiteEditor({
   const updateMutation = useMutation({
     mutationFn: (data: SiteForm) => api.updateSite(id!, toApiPayload(data)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       onClose ? onClose() : navigate("/sites");
     },
     onError: (error) =>
@@ -640,6 +776,26 @@ export default function SiteEditor({
                 </div>
               </div>
               <div className="card-body">
+                <div className="mb-3">
+                  <label className="form-label" htmlFor="route-id">
+                    Caddy route ID
+                  </label>
+                  <input
+                    {...register("routeId")}
+                    id="route-id"
+                    className={`form-control ${errors.routeId ? "is-invalid" : ""}`}
+                    placeholder="caddy-manager"
+                  />
+                  <div className="form-text">
+                    Optional Caddy <code>@id</code>. Leave blank to generate one
+                    from the hostname.
+                  </div>
+                  {errors.routeId && (
+                    <div className="invalid-feedback">
+                      {errors.routeId.message}
+                    </div>
+                  )}
+                </div>
                 <label className="form-label" htmlFor="route-mode">
                   Route action
                 </label>
@@ -687,6 +843,92 @@ export default function SiteEditor({
                         {errors.upstream.message}
                       </div>
                     )}
+                    <div className="d-flex justify-content-between align-items-center mt-3 mb-2">
+                      <label className="form-label mb-0">
+                        Response headers
+                      </label>
+                    </div>
+                    <div className="row g-2 mb-3">
+                      <div className="col">
+                        <select
+                          className="form-select"
+                          aria-label="Common response header policy"
+                          value={selectedHeaderPolicy}
+                          onChange={(event) =>
+                            setSelectedHeaderPolicy(event.target.value)
+                          }
+                        >
+                          <option value="">Choose a common policy...</option>
+                          {COMMON_RESPONSE_HEADERS.map((header) => (
+                            <option key={header.name} value={header.name}>
+                              {header.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-auto">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          disabled={!selectedHeaderPolicy}
+                          onClick={() => {
+                            const header = COMMON_RESPONSE_HEADERS.find(
+                              (item) => item.name === selectedHeaderPolicy,
+                            );
+                            if (!header) return;
+                            responseHeaders.append({
+                              name: header.name,
+                              value: header.value,
+                            });
+                            setSelectedHeaderPolicy("");
+                          }}
+                        >
+                          Add policy
+                        </button>
+                      </div>
+                      <div className="col-auto">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() =>
+                            responseHeaders.append({ name: "", value: "" })
+                          }
+                        >
+                          Add custom header
+                        </button>
+                      </div>
+                    </div>
+                    {responseHeaders.fields.map((field, index) => (
+                      <div className="row g-2 mb-2" key={field.id}>
+                        <div className="col-5">
+                          <input
+                            {...register(`responseHeaders.${index}.name`)}
+                            className="form-control"
+                            placeholder="Content-Security-Policy"
+                          />
+                        </div>
+                        <div className="col">
+                          <input
+                            {...register(`responseHeaders.${index}.value`)}
+                            className="form-control"
+                            placeholder="upgrade-insecure-requests"
+                          />
+                        </div>
+                        <div className="col-auto">
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger"
+                            aria-label="Remove header"
+                            onClick={() => responseHeaders.remove(index)}
+                          >
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="form-text">
+                      These headers are added to responses before proxying.
+                    </div>
                   </>
                 )}
 
@@ -887,17 +1129,6 @@ export default function SiteEditor({
             <details className="editor-details mb-3">
               <summary>Advanced settings</summary>
               <div className="pt-3">
-                <label className="form-label">Route ID</label>
-                <input
-                  {...register("routeId")}
-                  className={`form-control ${errors.routeId ? "is-invalid" : ""}`}
-                  placeholder="Required for dynamic inventory"
-                />
-                {errors.routeId && (
-                  <div className="invalid-feedback">
-                    {errors.routeId.message}
-                  </div>
-                )}
                 <div className="form-check form-switch mt-3">
                   <Controller
                     name="tlsEnabled"

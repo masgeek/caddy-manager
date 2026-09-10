@@ -21,7 +21,10 @@ export async function registerSiteGroupRoutes(app: FastifyInstance) {
     "/site-groups",
     {
       schema: { body: toJsonSchema(createSiteGroupSchema) },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const group = await groupService.createGroup(
@@ -35,7 +38,10 @@ export async function registerSiteGroupRoutes(app: FastifyInstance) {
     "/site-groups/:id",
     {
       schema: { body: toJsonSchema(updateSiteGroupSchema) },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request) => {
       const { id } = request.params as { id: string };
@@ -48,7 +54,12 @@ export async function registerSiteGroupRoutes(app: FastifyInstance) {
 
   app.delete(
     "/site-groups/:id",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       await groupService.deleteGroup(id);

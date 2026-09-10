@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { classifyHttpStatus, configContainsSite } from "./siteHealth";
+import {
+  classifyHttpStatus,
+  calculateRetryDelay,
+  configContainsSite,
+  hasUntrackedDynamicSite,
+  isHealthCheckableSite,
+} from "./siteHealth";
 
 describe("classifyHttpStatus", () => {
   it("treats 4xx responses as warnings", () => {
@@ -15,6 +21,21 @@ describe("classifyHttpStatus", () => {
   });
 });
 
+describe("calculateRetryDelay", () => {
+  it("doubles the maximum delay for each retry", () => {
+    expect(calculateRetryDelay(250, 0, () => 1)).toBe(250);
+    expect(calculateRetryDelay(250, 1, () => 1)).toBe(500);
+  });
+
+  it("adds jitter within the exponential window", () => {
+    expect(calculateRetryDelay(250, 2, () => 0.4)).toBe(400);
+  });
+
+  it("caps the exponential delay", () => {
+    expect(calculateRetryDelay(60_000, 4, () => 1)).toBe(60_000);
+  });
+});
+
 describe("configContainsSite", () => {
   it("finds a route by its persisted route id", () => {
     expect(
@@ -23,7 +44,11 @@ describe("configContainsSite", () => {
           apps: {
             http: {
               servers: {
-                proxy: { routes: [{ "@id": "imported-route" }] },
+                proxy: {
+                  routes: [
+                    { "@id": "imported-route" },
+                  ],
+                },
               },
             },
           },
@@ -44,7 +69,19 @@ describe("configContainsSite", () => {
                   routes: [
                     {
                       handle: [
-                        { routes: [{ match: [{ host: ["example.com"] }] }] },
+                        {
+                          routes: [
+                            {
+                              match: [
+                                {
+                                  host: [
+                                    "example.com",
+                                  ],
+                                },
+                              ],
+                            },
+                          ],
+                        },
                       ],
                     },
                   ],
@@ -75,7 +112,19 @@ describe("configContainsSite", () => {
       apps: {
         http: {
           servers: {
-            public: { routes: [{ match: [{ host: ["example.com"] }] }] },
+            public: {
+              routes: [
+                {
+                  match: [
+                    {
+                      host: [
+                        "example.com",
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
             internal: { routes: [] },
           },
         },
@@ -88,5 +137,47 @@ describe("configContainsSite", () => {
     expect(
       configContainsSite(config, { domain: "example.com" }, "public"),
     ).toBe(true);
+  });
+});
+
+describe("isHealthCheckableSite", () => {
+  it("includes API-managed sites with a route ID", () => {
+    expect(isHealthCheckableSite({ routeId: "dynamic-route" })).toBe(true);
+  });
+
+  it("excludes Caddyfile-managed sites without a route ID", () => {
+    expect(isHealthCheckableSite({ routeId: undefined })).toBe(false);
+  });
+});
+
+describe("hasUntrackedDynamicSite", () => {
+  it("detects an API-managed site missing from inventory", () => {
+    expect(
+      hasUntrackedDynamicSite(
+        [
+          { domain: "api.example.com", routeId: "api-route" },
+        ],
+        [],
+        "proxy",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not block reconciliation for tracked or Caddyfile sites", () => {
+    expect(
+      hasUntrackedDynamicSite(
+        [
+          { domain: "api.example.com", routeId: "api-route" },
+          { domain: "legacy.example.com" },
+        ],
+        [
+          {
+            domain: "api.example.com",
+            managementType: "dynamic",
+          },
+        ],
+        "proxy",
+      ),
+    ).toBe(false);
   });
 });

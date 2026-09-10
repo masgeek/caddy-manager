@@ -40,6 +40,31 @@ export const logQuerySchema = z.object({
 
 export const auditQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(500).default(100),
+  userId: z.string().uuid().optional(),
+  action: z
+    .enum([
+      "create",
+      "update",
+      "delete",
+      "reload",
+      "login",
+      "logout",
+    ])
+    .optional(),
+  entity: z
+    .enum([
+      "site",
+      "server",
+      "config",
+      "user",
+    ])
+    .optional(),
+  result: z
+    .enum([
+      "success",
+      "failure",
+    ])
+    .optional(),
 });
 
 // ----------------------------------------------------------------
@@ -52,7 +77,12 @@ const serverResponseZod = z.object({
   hostname: z.string().describe("Server hostname or IP"),
   apiEndpoint: z.string().url().describe("Caddy admin API endpoint"),
   status: z
-    .enum(["online", "offline", "degraded", "unknown"])
+    .enum([
+      "online",
+      "offline",
+      "degraded",
+      "unknown",
+    ])
     .describe("Server status"),
   version: z.string().optional().describe("Caddy version"),
   createdAt: z.string().describe("Creation timestamp"),
@@ -80,7 +110,12 @@ const siteResponseZod = z.object({
   tlsEnabled: z.boolean().describe("Whether TLS is enabled"),
   synced: z.boolean().describe("Whether config is synced to Caddy"),
   status: z
-    .enum(["active", "inactive", "warning", "error"])
+    .enum([
+      "active",
+      "inactive",
+      "warning",
+      "error",
+    ])
     .describe("Site status"),
   statusDetail: z
     .string()
@@ -114,15 +149,32 @@ const auditEventZod = z.object({
   id: z.string().uuid().describe("Audit event ID"),
   userId: z.string().uuid().describe("User who performed the action"),
   action: z
-    .enum(["create", "update", "delete", "reload", "login", "logout"])
+    .enum([
+      "create",
+      "update",
+      "delete",
+      "reload",
+      "login",
+      "logout",
+    ])
     .describe("Action performed"),
   entity: z
-    .enum(["site", "server", "config", "user"])
+    .enum([
+      "site",
+      "server",
+      "config",
+      "user",
+    ])
     .describe("Entity type affected"),
   entityId: z.string().optional().describe("ID of the affected entity"),
   details: z.string().optional().describe("Human-readable details"),
   timestamp: z.string().describe("When the event occurred"),
-  result: z.enum(["success", "failure"]).describe("Outcome of the action"),
+  result: z
+    .enum([
+      "success",
+      "failure",
+    ])
+    .describe("Outcome of the action"),
 });
 
 const logEntryZod = z.object({
@@ -147,7 +199,12 @@ const loginResponseZod = z.object({
 });
 
 const serverHealthZod = z.object({
-  status: z.enum(["online", "offline"]).describe("Server connectivity status"),
+  status: z
+    .enum([
+      "online",
+      "offline",
+    ])
+    .describe("Server connectivity status"),
   server: serverResponseZod,
 });
 

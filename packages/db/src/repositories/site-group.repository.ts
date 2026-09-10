@@ -33,7 +33,9 @@ class SiteGroupRepository {
   }
 
   async findById(id: string): Promise<SiteGroup | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(siteGroups)
       .where(eq(siteGroups.id, id))
@@ -45,7 +47,9 @@ class SiteGroupRepository {
     name: string,
     serverId: string,
   ): Promise<SiteGroup | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .select()
       .from(siteGroups)
       .where(and(eq(siteGroups.name, name), eq(siteGroups.serverId, serverId)))
@@ -54,7 +58,9 @@ class SiteGroupRepository {
   }
 
   async create(data: { serverId: string; name: string; description?: string }) {
-    const [row] = await db.insert(siteGroups).values(data).returning();
+    const [
+      row,
+    ] = await db.insert(siteGroups).values(data).returning();
     return toSiteGroup(row);
   }
 
@@ -62,7 +68,9 @@ class SiteGroupRepository {
     id: string,
     data: { name?: string; description?: string },
   ): Promise<SiteGroup | undefined> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .update(siteGroups)
       .set(data)
       .where(eq(siteGroups.id, id))
@@ -71,7 +79,9 @@ class SiteGroupRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .delete(siteGroups)
       .where(eq(siteGroups.id, id))
       .returning({ id: siteGroups.id });

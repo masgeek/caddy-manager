@@ -17,7 +17,9 @@ export async function registerConfigRoutes(app: FastifyInstance) {
     "/config",
     {
       schema: {
-        tags: ["Config"],
+        tags: [
+          "Config",
+        ],
         summary: "Get active Caddy configuration",
         querystring: toJsonSchema(serverIdParam),
         response: {
@@ -40,7 +42,9 @@ export async function registerConfigRoutes(app: FastifyInstance) {
     "/config/reload",
     {
       schema: {
-        tags: ["Config"],
+        tags: [
+          "Config",
+        ],
         summary: "Build and reload Caddy configuration",
         body: {
           ...toJsonSchema(reloadBody),
@@ -48,7 +52,10 @@ export async function registerConfigRoutes(app: FastifyInstance) {
         },
         response: { 200: configReloadResponseSchema },
       },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request) => {
       const { serverId } = reloadBody.parse(request.body);
@@ -82,7 +89,9 @@ export async function registerConfigRoutes(app: FastifyInstance) {
     "/config/generated",
     {
       schema: {
-        tags: ["Config"],
+        tags: [
+          "Config",
+        ],
         summary: "Preview generated configuration without deploying",
         querystring: toJsonSchema(serverIdParam),
         response: {

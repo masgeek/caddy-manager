@@ -33,5 +33,8 @@ export type { SiteGroup } from "@caddy-manager/shared-types";
 export { auditRepo, createAuditEventSchema } from "./audit.repository";
 export type { CreateAuditEventInput } from "./audit.repository";
 
+export { healthSettingsRepo } from "./health-settings.repository";
+export type { HealthSettings } from "./health-settings.repository";
+
 export { userRepo, createUserSchema } from "./user.repository";
 export type { CreateUserInput } from "./user.repository";

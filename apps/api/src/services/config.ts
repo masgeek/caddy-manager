@@ -1,6 +1,7 @@
 import type { Server, Site } from "@caddy-manager/shared-types";
 import { siteRepo, serverRepo, backfillSiteInventory } from "@caddy-manager/db";
 import { CaddyProvider } from "../providers/caddy";
+import { logger } from "../lib/logger.js";
 
 export interface ParsedSite {
   domain: string;
@@ -145,10 +146,9 @@ export async function importSitesFromConfig(
   provider: CaddyProvider,
 ): Promise<{ imported: number; skipped: number; sites: Site[] }> {
   const config = await provider.getConfig();
-  console.log(
-    "=== Imported Caddy config ===\n" +
-      JSON.stringify(config, null, 2) +
-      "\n=============================",
+  logger.debug(
+    { server: server.name, topLevelKeys: Object.keys(config) },
+    "Imported Caddy configuration",
   );
 
   const parsed = parseSitesFromConfig(config);
@@ -215,7 +215,10 @@ export function buildCaddyConfig(
     http: {
       servers: {
         srv0: {
-          listen: [":80", ":443"],
+          listen: [
+            ":80",
+            ":443",
+          ],
           routes: serverRoutes,
         },
       },
@@ -314,17 +317,30 @@ export function buildDynamicRoutes(
     groups.set(groupKey, {
       routeId: site.routeId,
       route,
-      hosts: new Set(routeHosts.length > 0 ? routeHosts : [site.domain]),
+      hosts: new Set(
+        routeHosts.length > 0
+          ? routeHosts
+          : [
+              site.domain,
+            ],
+      ),
       configuration,
     });
   }
 
-  return [...groups.values()].map(({ routeId, route, hosts }) => {
+  return [
+    ...groups.values(),
+  ].map(({ routeId, route, hosts }) => {
     const result = structuredClone(route);
     result["@id"] = routeId;
     const matches = result.match as Array<Record<string, unknown>> | undefined;
     if (matches?.length)
-      matches[0] = { ...matches[0], host: [...hosts].sort() };
+      matches[0] = {
+        ...matches[0],
+        host: [
+          ...hosts,
+        ].sort(),
+      };
     return result;
   });
 }
@@ -340,7 +356,14 @@ export function buildCaddyRoute(site: {
     const matches = route.match as Array<Record<string, unknown>> | undefined;
     if (matches?.length) {
       route.match = matches.map((match, index) =>
-        index === 0 ? { ...match, host: [site.domain] } : match,
+        index === 0
+          ? {
+              ...match,
+              host: [
+                site.domain,
+              ],
+            }
+          : match,
       );
     }
     if (site.routeId) route["@id"] = site.routeId;
@@ -355,11 +378,19 @@ export function buildCaddyRoute(site: {
 
   return {
     "@id": site.routeId || site.domain.replace(/[^a-zA-Z0-9_-]/g, "_"),
-    match: [{ host: [site.domain] }],
+    match: [
+      {
+        host: [
+          site.domain,
+        ],
+      },
+    ],
     handle: [
       {
         handler: "reverse_proxy",
-        upstreams: [{ dial: site.upstream.replace(/^https?:\/\//, "") }],
+        upstreams: [
+          { dial: site.upstream.replace(/^https?:\/\//, "") },
+        ],
       },
     ],
   };
@@ -509,7 +540,14 @@ export async function discoverAndImport(apiEndpoint: string): Promise<{
   }
 
   await backfillSiteInventory();
-  return { servers: [...servers.values()], imported, skipped, sites };
+  return {
+    servers: [
+      ...servers.values(),
+    ],
+    imported,
+    skipped,
+    sites,
+  };
 }
 
 export async function getServerConfig(
@@ -588,8 +626,16 @@ export async function syncDynamicRoutes(
       if (
         !found ||
         found["@id"] !== route["@id"] ||
-        stableJson([...actualHosts].sort()) !==
-          stableJson([...expectedHosts].sort()) ||
+        stableJson(
+          [
+            ...actualHosts,
+          ].sort(),
+        ) !==
+          stableJson(
+            [
+              ...expectedHosts,
+            ].sort(),
+          ) ||
         routeBehavior(found) !== routeBehavior(route)
       ) {
         throw new Error(

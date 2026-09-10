@@ -1,12 +1,17 @@
-import { runMigrations, closeDb, backfillSiteInventory } from "@caddy-manager/db";
+import {
+  runMigrations,
+  closeDb,
+  backfillSiteInventory,
+} from "@caddy-manager/db";
+import { logger } from "./lib/logger.js";
 
 async function migrate() {
   try {
     await runMigrations();
     await backfillSiteInventory();
-    console.log("Migrations completed successfully");
+    logger.info("Migrations completed successfully");
   } catch (err) {
-    console.error("Migration failed:", err);
+    logger.error({ err }, "Migration failed");
     process.exit(1);
   } finally {
     await closeDb();

@@ -42,16 +42,37 @@ const columns: Column<Server>[] = [
 
 export default function Servers() {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [discoverOpen, setDiscoverOpen] = useState(false);
-  const [discoverUrl, setDiscoverUrl] = useState(DEFAULT_CADDY_ENDPOINT);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editServer, setEditServer] = useState<Server | null>(null);
-  const [importPreview, setImportPreview] = useState<{
+  const [
+    dialogOpen,
+    setDialogOpen,
+  ] = useState(false);
+  const [
+    discoverOpen,
+    setDiscoverOpen,
+  ] = useState(false);
+  const [
+    discoverUrl,
+    setDiscoverUrl,
+  ] = useState(DEFAULT_CADDY_ENDPOINT);
+  const [
+    deleteId,
+    setDeleteId,
+  ] = useState<string | null>(null);
+  const [
+    editServer,
+    setEditServer,
+  ] = useState<Server | null>(null);
+  const [
+    importPreview,
+    setImportPreview,
+  ] = useState<{
     server: Server;
     sites: ImportPreviewSite[];
   } | null>(null);
-  const [operation, setOperation] = useState<OperationState | null>(null);
+  const [
+    operation,
+    setOperation,
+  ] = useState<OperationState | null>(null);
 
   useEffect(() => {
     const modalOpen =
@@ -62,7 +83,12 @@ export default function Servers() {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [dialogOpen, discoverOpen, importPreview, deleteId]);
+  }, [
+    dialogOpen,
+    discoverOpen,
+    importPreview,
+    deleteId,
+  ]);
 
   const {
     register,
@@ -74,7 +100,9 @@ export default function Servers() {
   });
 
   const query = useQuery({
-    queryKey: ["servers"],
+    queryKey: [
+      "servers",
+    ],
     queryFn: () => api.getServers(),
   });
 
@@ -88,7 +116,10 @@ export default function Servers() {
     } else {
       reset({ name: "", hostname: "", apiEndpoint: "" });
     }
-  }, [editServer, reset]);
+  }, [
+    editServer,
+    reset,
+  ]);
 
   const createMutation = useMutation({
     mutationFn: (data: ServerForm) =>
@@ -99,7 +130,11 @@ export default function Servers() {
         message: "The Caddy server was registered.",
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
       setDialogOpen(false);
       reset();
     },
@@ -121,7 +156,11 @@ export default function Servers() {
         message: "The Caddy server was updated.",
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
       setDialogOpen(false);
       setEditServer(null);
       reset();
@@ -143,7 +182,11 @@ export default function Servers() {
         message: "The Caddy server was deleted.",
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
       setDeleteId(null);
     },
     onError: (error) =>
@@ -163,7 +206,11 @@ export default function Servers() {
         message: "The server health check completed.",
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
     },
     onError: (error) =>
       setOperation({
@@ -184,8 +231,16 @@ export default function Servers() {
         message: `${data.imported} site(s) imported, ${data.skipped} skipped.`,
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setSnackbar(`${data.imported} site(s) imported, ${data.skipped} skipped`);
       setImportPreview(null);
     },
@@ -227,8 +282,16 @@ export default function Servers() {
         message: `Discovered ${data.servers.length} server(s) and ${data.sites.length} site(s).`,
         status: "success",
       });
-      queryClient.invalidateQueries({ queryKey: ["servers"] });
-      queryClient.invalidateQueries({ queryKey: ["sites"] });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "servers",
+        ],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [
+          "sites",
+        ],
+      });
       setDiscoverOpen(false);
       setDiscoverUrl(DEFAULT_CADDY_ENDPOINT);
       setSnackbar(
@@ -245,7 +308,10 @@ export default function Servers() {
     },
   });
 
-  const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [
+    snackbar,
+    setSnackbar,
+  ] = useState<string | null>(null);
 
   const rows = query.data || [];
   const onlineCount = rows.filter(
@@ -367,7 +433,10 @@ export default function Servers() {
       )}
       {!query.isLoading && !query.isError && (
         <DataTable
-          columns={[...columns, actionColumn]}
+          columns={[
+            ...columns,
+            actionColumn,
+          ]}
           rows={rows}
           getRowId={(r) => r.id}
         />

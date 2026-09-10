@@ -7,7 +7,7 @@ const navItems = [
   { label: "Servers", path: "/servers", icon: "bi-hdd-rack" },
   { label: "Sites", path: "/sites", icon: "bi-file-text" },
   { label: "Site Inventory", path: "/site-inventory", icon: "bi-boxes" },
-  { label: "Config", path: "/config", icon: "bi-gear" },
+  { label: "Settings", path: "/settings", icon: "bi-sliders" },
   { label: "Logs", path: "/logs", icon: "bi-terminal" },
   { label: "Audit", path: "/audit", icon: "bi-clock-history" },
 ];
@@ -18,7 +18,10 @@ interface LayoutProps {
 }
 
 export function Layout({ children, onLogout }: LayoutProps) {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 

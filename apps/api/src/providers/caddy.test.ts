@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@caddy-manager/config", () => ({
   config: {
     caddyAdminToken: "test-token",
-    caddyAllowedHosts: ["caddy.test"],
+    caddyAllowedHosts: [
+      "caddy.test",
+    ],
   },
 }));
 
@@ -60,7 +62,13 @@ describe("CaddyProvider", () => {
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
     const route = {
       "@id": "example-route",
-      match: [{ host: ["example.com"] }],
+      match: [
+        {
+          host: [
+            "example.com",
+          ],
+        },
+      ],
     };
 
     await provider.addRoute("internal", route);
@@ -105,17 +113,42 @@ describe("CaddyProvider", () => {
     fetchMock
       .mockResolvedValueOnce(
         response([
-          { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
+          {
+            "@id": "static-route",
+            match: [
+              {
+                host: [
+                  "static.example.com",
+                ],
+              },
+            ],
+          },
           {
             "@id": "service-a",
-            match: [{ host: ["first.example.com", "second.example.com"] }],
+            match: [
+              {
+                host: [
+                  "first.example.com",
+                  "second.example.com",
+                ],
+              },
+            ],
           },
         ]),
       )
       .mockResolvedValueOnce(response(undefined));
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
     const routes = [
-      { "@id": "service-a", match: [{ host: ["first.example.com"] }] },
+      {
+        "@id": "service-a",
+        match: [
+          {
+            host: [
+              "first.example.com",
+            ],
+          },
+        ],
+      },
     ];
 
     await provider.replaceDynamicRoutes("srv0", routes);
@@ -125,7 +158,16 @@ describe("CaddyProvider", () => {
       expect.objectContaining({
         method: "PATCH",
         body: JSON.stringify([
-          { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
+          {
+            "@id": "static-route",
+            match: [
+              {
+                host: [
+                  "static.example.com",
+                ],
+              },
+            ],
+          },
           routes[0],
         ]),
       }),
@@ -138,7 +180,9 @@ describe("CaddyProvider", () => {
       .mockResolvedValueOnce(response(undefined));
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
 
-    await provider.ensureTlsAutomation(["koiwa.munywele.co.ke"]);
+    await provider.ensureTlsAutomation([
+      "koiwa.munywele.co.ke",
+    ]);
 
     expect(fetchMock).toHaveBeenLastCalledWith(
       "https://caddy.test/load",
@@ -152,16 +196,45 @@ describe("CaddyProvider", () => {
   it("selects legacy routes only by application-owned IDs", async () => {
     fetchMock.mockResolvedValue(
       response([
-        { "@id": "owned-route", match: [{ host: ["owned.example.com"] }] },
-        { "@id": "static-route", match: [{ host: ["static.example.com"] }] },
+        {
+          "@id": "owned-route",
+          match: [
+            {
+              host: [
+                "owned.example.com",
+              ],
+            },
+          ],
+        },
+        {
+          "@id": "static-route",
+          match: [
+            {
+              host: [
+                "static.example.com",
+              ],
+            },
+          ],
+        },
       ]),
     );
     const provider = new CaddyProvider({ apiEndpoint: "https://caddy.test" });
 
     await expect(
-      provider.findLegacyRoutes("internal", ["owned-route"]),
+      provider.findLegacyRoutes("internal", [
+        "owned-route",
+      ]),
     ).resolves.toEqual([
-      { "@id": "owned-route", match: [{ host: ["owned.example.com"] }] },
+      {
+        "@id": "owned-route",
+        match: [
+          {
+            host: [
+              "owned.example.com",
+            ],
+          },
+        ],
+      },
     ]);
   });
 });

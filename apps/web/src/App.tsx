@@ -12,7 +12,7 @@ import Sites from "./pages/Sites";
 import SiteInventory from "./pages/SiteInventory";
 import SiteEditor from "./pages/SiteEditor";
 import SiteOverview from "./pages/SiteOverview";
-import Config from "./pages/Config";
+import Settings from "./pages/Settings";
 import Logs from "./pages/Logs";
 import Audit from "./pages/Audit";
 import Login from "./pages/Login";
@@ -58,7 +58,7 @@ function AppRoutes() {
                 <Route path="/sites/new" element={<SiteEditor />} />
                 <Route path="/sites/:id" element={<SiteOverview />} />
                 <Route path="/sites/:id/edit" element={<SiteEditor />} />
-                <Route path="/config" element={<Config />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/audit" element={<Audit />} />
               </Routes>

@@ -33,7 +33,10 @@ export default function OperationToast({
     show(message, { id, duration: notificationConfig.delay });
     const closeTimer = window.setTimeout(onClose, notificationConfig.delay);
     return () => window.clearTimeout(closeTimer);
-  }, [operation, onClose]);
+  }, [
+    operation,
+    onClose,
+  ]);
 
   return null;
 }

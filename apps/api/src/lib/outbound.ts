@@ -15,7 +15,10 @@ export function isPrivateAddress(address: string): boolean {
 
   if (version === 4) {
     const octets = value.split(".").map(Number);
-    const [first, second] = octets;
+    const [
+      first,
+      second,
+    ] = octets;
     return (
       first === 0 ||
       first === 10 ||
@@ -53,7 +56,12 @@ function parseHttpUrl(raw: string): URL {
     throw new Error("Outbound URL is invalid");
   }
 
-  if (!["http:", "https:"].includes(url.protocol)) {
+  if (
+    ![
+      "http:",
+      "https:",
+    ].includes(url.protocol)
+  ) {
     throw new Error("Outbound URL must use HTTP or HTTPS");
   }
   if (url.username || url.password) {

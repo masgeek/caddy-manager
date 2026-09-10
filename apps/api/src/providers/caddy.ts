@@ -96,13 +96,21 @@ export class CaddyProvider {
           (subject): subject is string => typeof subject === "string",
         )
       : [];
-    const subjects = [...new Set([...existingSubjects, ...domains])].sort();
+    const subjects = [
+      ...new Set([
+        ...existingSubjects,
+        ...domains,
+      ]),
+    ].sort();
     const nextApps = structuredClone(apps);
     nextApps.tls = {
       ...tls,
       automation: {
         ...automation,
-        policies: [{ ...existing, subjects }, ...policies.slice(1)],
+        policies: [
+          { ...existing, subjects },
+          ...policies.slice(1),
+        ],
       },
     };
     await this.reloadConfig({ ...current, apps: nextApps });

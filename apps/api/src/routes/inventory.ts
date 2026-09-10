@@ -9,7 +9,12 @@ import * as inventoryService from "../services/inventory";
 export async function registerInventoryRoutes(app: FastifyInstance) {
   app.post(
     "/site-inventory/ensure-dynamic",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async () => inventoryService.ensureDynamicInfrastructure(),
   );
 
@@ -27,7 +32,10 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
     "/site-inventory",
     {
       schema: { body: toJsonSchema(createSiteInventorySchema) },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request, reply) => {
       const item = await inventoryService.createInventory(
@@ -41,7 +49,10 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
     "/site-inventory/:id",
     {
       schema: { body: toJsonSchema(updateSiteInventorySchema) },
-      preHandler: app.authorize(["admin", "operator"]),
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
     },
     async (request) => {
       const { id } = request.params as { id: string };
@@ -54,7 +65,12 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
 
   app.post(
     "/site-inventory/:id/ready",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async (request) => {
       const { id } = request.params as { id: string };
       return inventoryService.markReady(id);
@@ -63,7 +79,12 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
 
   app.post(
     "/site-inventory/:id/provision",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async (request) => {
       const { id } = request.params as { id: string };
       return inventoryService.provisionInventory(id);
@@ -72,7 +93,12 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
 
   app.post(
     "/site-inventory/:id/disable",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async (request) => {
       const { id } = request.params as { id: string };
       return inventoryService.disableInventory(id);
@@ -81,7 +107,12 @@ export async function registerInventoryRoutes(app: FastifyInstance) {
 
   app.delete(
     "/site-inventory/:id",
-    { preHandler: app.authorize(["admin", "operator"]) },
+    {
+      preHandler: app.authorize([
+        "admin",
+        "operator",
+      ]),
+    },
     async (request, reply) => {
       const { id } = request.params as { id: string };
       await inventoryService.deleteInventory(id);

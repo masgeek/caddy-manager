@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type {
   AuditEvent,
   AuditAction,
@@ -34,7 +34,9 @@ function toAuditEvent(row: typeof auditEvents.$inferSelect): AuditEvent {
 
 class AuditRepository {
   async create(data: CreateAuditEventInput): Promise<AuditEvent> {
-    const [row] = await db
+    const [
+      row,
+    ] = await db
       .insert(auditEvents)
       .values({
         userId: data.userId || "admin",
@@ -48,12 +50,27 @@ class AuditRepository {
     return toAuditEvent(row);
   }
 
-  async findAll(limit = 100): Promise<AuditEvent[]> {
+  async findAll(
+    options: {
+      limit?: number;
+      userId?: string;
+      action?: string;
+      entity?: string;
+      result?: string;
+    } = {},
+  ): Promise<AuditEvent[]> {
+    const filters = [
+      options.userId ? eq(auditEvents.userId, options.userId) : undefined,
+      options.action ? eq(auditEvents.action, options.action) : undefined,
+      options.entity ? eq(auditEvents.entity, options.entity) : undefined,
+      options.result ? eq(auditEvents.result, options.result) : undefined,
+    ].filter((value): value is NonNullable<typeof value> => Boolean(value));
     const rows = await db
       .select()
       .from(auditEvents)
+      .where(filters.length ? and(...filters) : undefined)
       .orderBy(desc(auditEvents.timestamp))
-      .limit(limit);
+      .limit(options.limit ?? 100);
     return rows.map(toAuditEvent);
   }
 }

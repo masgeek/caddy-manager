@@ -11,7 +11,9 @@ export async function registerAuditRoutes(app: FastifyInstance) {
     "/audit",
     {
       schema: {
-        tags: ["Audit"],
+        tags: [
+          "Audit",
+        ],
         summary: "Get audit trail",
         querystring: toJsonSchema(auditQuerySchema),
         response: { 200: auditListSchema },
@@ -19,7 +21,7 @@ export async function registerAuditRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const query = auditQuerySchema.parse(request.query);
-      return auditService.getAuditEvents(query.limit);
+      return auditService.getAuditEvents(query);
     },
   );
 }

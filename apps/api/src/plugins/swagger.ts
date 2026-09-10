@@ -10,7 +10,9 @@ export async function registerSwagger(app: FastifyInstance) {
         description: "REST API for managing Caddy web servers",
         version: "0.1.0",
       },
-      servers: [{ url: "http://localhost:3500", description: "Development" }],
+      servers: [
+        { url: "http://localhost:3500", description: "Development" },
+      ],
       components: {
         securitySchemes: {
           bearerAuth: {
@@ -20,7 +22,9 @@ export async function registerSwagger(app: FastifyInstance) {
           },
         },
       },
-      security: [{ bearerAuth: [] }],
+      security: [
+        { bearerAuth: [] },
+      ],
     },
   });
 
